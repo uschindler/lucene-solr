@@ -1,0 +1,4 @@
+Jackcess Encrypt; an extension library for the Jackcess project which 
+implements support for some forms of Microsoft Access and Microsoft 
+Money encryption
+http://jackcessencrypt.sourceforge.net/

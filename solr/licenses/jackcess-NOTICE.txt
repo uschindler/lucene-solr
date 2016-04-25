@@ -1,0 +1,3 @@
+Jackcess; is a pure Java library for reading from and writing to MS Access 
+databases
+http://jackcess.sourceforge.net/

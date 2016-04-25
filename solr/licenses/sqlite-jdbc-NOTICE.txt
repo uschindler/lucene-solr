@@ -1,0 +1,3 @@
+SQLite JDBC Driver; is a library for accessing and creating SQLite 
+database files in Java
+https://bitbucket.org/xerial/sqlite-jdbc
