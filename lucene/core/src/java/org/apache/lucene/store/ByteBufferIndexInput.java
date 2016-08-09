@@ -50,35 +50,26 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   protected ByteBuffer curBuf; // redundant for speed: buffers[curBufIndex]
 
   protected boolean isClone = false;
-  private final SwitchPoint switchPoint;
+  private final UnmapGuard guard;
   
-  public static ByteBufferIndexInput newInstance(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, BufferCleaner cleaner, SwitchPoint switchPoint) {
+  public static ByteBufferIndexInput newInstance(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, BufferCleaner cleaner, UnmapGuard guard) {
     if (buffers.length == 1) {
-      return new SingleBufferImpl(resourceDescription, buffers[0], length, chunkSizePower, cleaner, switchPoint);
+      return new SingleBufferImpl(resourceDescription, buffers[0], length, chunkSizePower, cleaner, guard);
     } else {
-      return new MultiBufferImpl(resourceDescription, buffers, 0, length, chunkSizePower, cleaner, switchPoint);
+      return new MultiBufferImpl(resourceDescription, buffers, 0, length, chunkSizePower, cleaner, guard);
     }
   }
   
-  ByteBufferIndexInput(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, BufferCleaner cleaner, SwitchPoint switchPoint) {
+  ByteBufferIndexInput(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, BufferCleaner cleaner, UnmapGuard guard) {
     super(resourceDescription);
     this.buffers = buffers;
     this.length = length;
     this.chunkSizePower = chunkSizePower;
     this.chunkSizeMask = (1L << chunkSizePower) - 1L;
-    this.switchPoint = switchPoint;
     this.cleaner = cleaner;
+    this.guard = guard;
     assert chunkSizePower >= 0 && chunkSizePower <= 30;   
     assert (length >>> chunkSizePower) < Integer.MAX_VALUE;
-    // initialize method handles
-    if (switchPoint != null) {
-      AlreadyClosedException ace = new AlreadyClosedException("Already closed: " + this);
-      MethodHandle fallback = MethodHandles.throwException(ByteBuffer.class, AlreadyClosedException.class);
-      BYTEBUFFER_GET_BYTES_SAFE = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES, 
-                                                            MethodHandles.dropArguments(fallback.bindTo(ace), 0, BYTEBUFFER_GET_BYTES.type().parameterArray()));
-    } else {
-      BYTEBUFFER_GET_BYTES_SAFE = BYTEBUFFER_GET_BYTES;
-    }
   }
   
   @Override
@@ -100,12 +91,23 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     }
   }
   
-  private final MethodHandle BYTEBUFFER_GET_BYTES_SAFE;
+  static class UnmapGuard {
+    final SwitchPoint switchPoint;
+    final MethodHandle BYTEBUFFER_GET_BYTES_SAFE;
+    UnmapGuard() {
+      switchPoint = new SwitchPoint();
+      BYTEBUFFER_GET_BYTES_SAFE = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES, BYTEBUFFER_GET_BYTES_FALLBACK);
+    }
+  }
+  
   private static final MethodHandle BYTEBUFFER_GET_BYTES;
+  private static final MethodHandle BYTEBUFFER_GET_BYTES_FALLBACK;
   static {
     MethodHandles.Lookup lookup = MethodHandles.publicLookup();
     try {
       BYTEBUFFER_GET_BYTES = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(ByteBuffer.class, byte[].class, int.class, int.class));
+      BYTEBUFFER_GET_BYTES_FALLBACK = MethodHandles.dropArguments(MethodHandles.throwException(ByteBuffer.class, AlreadyClosedException.class), 
+                                                                  1, BYTEBUFFER_GET_BYTES.type().parameterArray()).bindTo(new AlreadyClosedException("already closed"));
     } catch (NoSuchMethodException | IllegalAccessException e) {
       throw new Error(e);
     }
@@ -114,7 +116,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   @Override
   public final void readBytes(byte[] b, int offset, int len) throws IOException {
     try {
-      ByteBuffer unused = (ByteBuffer) BYTEBUFFER_GET_BYTES_SAFE.invokeExact(curBuf, b, offset, len);
+      ByteBuffer unused = (ByteBuffer) guard.BYTEBUFFER_GET_BYTES_SAFE.invokeExact(curBuf, b, offset, len);
     } catch (BufferUnderflowException e) {
       int curAvail = curBuf.remaining();
       while (len > curAvail) {
@@ -318,9 +320,9 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   protected ByteBufferIndexInput newCloneInstance(String newResourceDescription, ByteBuffer[] newBuffers, int offset, long length) {
     if (newBuffers.length == 1) {
       newBuffers[0].position(offset);
-      return new SingleBufferImpl(newResourceDescription, newBuffers[0].slice(), length, chunkSizePower, this.cleaner, this.switchPoint);
+      return new SingleBufferImpl(newResourceDescription, newBuffers[0].slice(), length, chunkSizePower, this.cleaner, this.guard);
     } else {
-      return new MultiBufferImpl(newResourceDescription, newBuffers, offset, length, chunkSizePower, cleaner, switchPoint);
+      return new MultiBufferImpl(newResourceDescription, newBuffers, offset, length, chunkSizePower, cleaner, guard);
     }
   }
   
@@ -358,9 +360,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
       if (isClone) return;
       
       // for extra safety unset switchPoint
-      if (switchPoint != null) {
-        SwitchPoint.invalidateAll(new SwitchPoint[] { switchPoint });
-      }
+      SwitchPoint.invalidateAll(new SwitchPoint[] { guard.switchPoint });
       
       for (final ByteBuffer b : bufs) {
         freeBuffer(b);
@@ -401,8 +401,8 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   static final class SingleBufferImpl extends ByteBufferIndexInput {
 
     SingleBufferImpl(String resourceDescription, ByteBuffer buffer, long length, int chunkSizePower,
-        BufferCleaner cleaner, SwitchPoint switchPoint) {
-      super(resourceDescription, new ByteBuffer[] { buffer }, length, chunkSizePower, cleaner, switchPoint);
+        BufferCleaner cleaner, UnmapGuard guard) {
+      super(resourceDescription, new ByteBuffer[] { buffer }, length, chunkSizePower, cleaner, guard);
       this.curBufIndex = 0;
       this.curBuf = buffer;
       buffer.position(0);
@@ -500,8 +500,8 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     private final int offset;
     
     MultiBufferImpl(String resourceDescription, ByteBuffer[] buffers, int offset, long length, int chunkSizePower,
-        BufferCleaner cleaner, SwitchPoint switchPoint) {
-      super(resourceDescription, buffers, length, chunkSizePower, cleaner, switchPoint);
+        BufferCleaner cleaner, UnmapGuard guard) {
+      super(resourceDescription, buffers, length, chunkSizePower, cleaner, guard);
       this.offset = offset;
       try {
         seek(0L);
