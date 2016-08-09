@@ -34,7 +34,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.Future;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.SwitchPoint;
 import java.lang.reflect.Method;
 
 import org.apache.lucene.store.ByteBufferIndexInput.BufferCleaner;
@@ -241,7 +240,7 @@ public class MMapDirectory extends FSDirectory {
       final boolean useUnmap = getUseUnmap();
       return ByteBufferIndexInput.newInstance(resourceDescription,
           map(resourceDescription, c, 0, c.size()), 
-          c.size(), chunkSizePower, useUnmap ? CLEANER : null, useUnmap ? new SwitchPoint() : null);
+          c.size(), chunkSizePower, useUnmap ? CLEANER : null, useUnmap);
     }
   }
 
