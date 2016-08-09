@@ -39,4 +39,32 @@ public class TestMmapDirectory extends BaseDirectoryTestCase {
         MMapDirectory.UNMAP_SUPPORTED);
   }
   
+  public void testAceWithThreads() throws Exception {
+    for (int iter = 0; iter < 10; iter++) {
+      Directory dir = getDirectory(createTempDir("testAceWithThreads"));
+      IndexOutput out = dir.createOutput("test", IOContext.DEFAULT);
+      for (int i = 0; i < 8 * 1024 * 1024; i++) {
+        out.writeInt(random().nextInt());
+      }
+      out.close();
+      IndexInput in = dir.openInput("test", IOContext.DEFAULT);
+      IndexInput clone = in.clone();
+      final byte accum[] = new byte[32 * 1024 * 1024];
+      Thread t1 = new Thread() {
+        @Override
+        public void run() {
+          try {
+            for (int i = 0; i < 10; i++) {
+              clone.seek(0);
+              clone.readBytes(accum, 0, accum.length);
+            }
+          } catch (IOException | AlreadyClosedException ok) {}
+        }
+      };
+      t1.start();
+      in.close();
+      t1.join();
+      dir.close();
+    }
+  }
 }
