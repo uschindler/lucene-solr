@@ -37,7 +37,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
 
 import org.apache.lucene.store.ByteBufferIndexInput.BufferCleaner;
-import org.apache.lucene.store.ByteBufferIndexInput.UnmapGuard;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SuppressForbidden;
 
@@ -241,7 +240,7 @@ public class MMapDirectory extends FSDirectory {
       final boolean useUnmap = getUseUnmap();
       return ByteBufferIndexInput.newInstance(resourceDescription,
           map(resourceDescription, c, 0, c.size()), 
-          c.size(), chunkSizePower, useUnmap ? CLEANER : null, new UnmapGuard());
+          c.size(), chunkSizePower, useUnmap ? CLEANER : null, new ByteBufferAccess(resourceDescription, useUnmap));
     }
   }
 
