@@ -27,7 +27,8 @@ final class ByteBufferAccess {
   private final String resourceDescription;
   private final BufferCleaner cleaner;
   private final SwitchPoint switchPoint;
-  private final MethodHandle mhGetBytesSafe, mhGetByteSafe, mhGetShortSafe, mhGetIntSafe, mhGetLongSafe, mhGetPosByteSafe, mhGetPosShortSafe, mhGetPosIntSafe, mhGetPosLongSafe;
+  private final MethodHandle mhGetBytesSafe, mhGetByteSafe, mhGetShortSafe, mhGetIntSafe, mhGetLongSafe,
+    mhGetPosByteSafe, mhGetPosShortSafe, mhGetPosIntSafe, mhGetPosLongSafe;
   
   /**
    * Pass in an implementation of this interface to cleanup ByteBuffers.
