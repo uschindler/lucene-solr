@@ -27,7 +27,8 @@ final class ByteBufferAccess {
   private final String resourceDescription;
   private final BufferCleaner cleaner;
   private final SwitchPoint switchPoint;
-  private final MethodHandle mhGetBytesSafe;
+  private final String alreadyClosedMsg;
+  private final MethodHandle mhGetBytesSafe, mhGetByteSafe;
   
   /**
    * Pass in an implementation of this interface to cleanup ByteBuffers.
@@ -43,12 +44,17 @@ final class ByteBufferAccess {
     this.cleaner = cleaner;
     if (cleaner != null) {
       switchPoint = new SwitchPoint();
-      final String alreadyClosedMsg = "Already closed: " + resourceDescription;
-      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(alreadyClosedMsg));
+      alreadyClosedMsg = "Already closed: " + resourceDescription;
     } else {
       switchPoint = null;
-      mhGetBytesSafe = BYTEBUFFER_GET_BYTES_UNSAFE;
+      alreadyClosedMsg = null;
     }
+    mhGetBytesSafe = getGuardedAccessor(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK);
+    mhGetByteSafe = getGuardedAccessor(BYTEBUFFER_GET_BYTE_UNSAFE, BYTEBUFFER_GET_BYTE_FALLBACK);
+  }
+  
+  private MethodHandle getGuardedAccessor(MethodHandle receiver, MethodHandle fallback) {
+    return (switchPoint == null) ? receiver : switchPoint.guardWithTest(receiver, fallback.bindTo(alreadyClosedMsg));
   }
   
   void invalidate(ByteBuffer bufs[]) throws IOException {
@@ -62,9 +68,18 @@ final class ByteBufferAccess {
     }
   }
   
-  ByteBuffer get(ByteBuffer receiver, byte[] dst, int offset, int length) {
+  ByteBuffer getBytes(ByteBuffer receiver, byte[] dst, int offset, int length) {
     try {
       return (ByteBuffer) mhGetBytesSafe.invokeExact(receiver, dst, offset, length);
+    } catch (Throwable e) {
+      rethrow(e);
+      throw new AssertionError();
+    }
+  }
+  
+  byte getByte(ByteBuffer receiver) {
+    try {
+      return (byte) mhGetByteSafe.invokeExact(receiver);
     } catch (Throwable e) {
       rethrow(e);
       throw new AssertionError();
@@ -83,14 +98,17 @@ final class ByteBufferAccess {
     return MethodHandles.dropArguments(fallback, 1, to.parameterArray());
   }
   
-  private static final MethodHandle BYTEBUFFER_GET_BYTES_UNSAFE;
-  private static final MethodHandle BYTEBUFFER_GET_BYTES_FALLBACK;
+  private static final MethodHandle BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK,
+    BYTEBUFFER_GET_BYTE_UNSAFE, BYTEBUFFER_GET_BYTE_FALLBACK
+    ;
   static {
     MethodHandles.Lookup lookup = MethodHandles.publicLookup();
     try {
       final MethodHandle alreadyClosedCtor = lookup.findConstructor(AlreadyClosedException.class, MethodType.methodType(void.class, String.class));
       BYTEBUFFER_GET_BYTES_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(ByteBuffer.class, byte[].class, int.class, int.class));
       BYTEBUFFER_GET_BYTES_FALLBACK = createFallback(alreadyClosedCtor, BYTEBUFFER_GET_BYTES_UNSAFE.type());
+      BYTEBUFFER_GET_BYTE_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(byte.class));
+      BYTEBUFFER_GET_BYTE_FALLBACK = createFallback(alreadyClosedCtor, BYTEBUFFER_GET_BYTE_UNSAFE.type());
     } catch (NoSuchMethodException | IllegalAccessException e) {
       throw new Error(e);
     }

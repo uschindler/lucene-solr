@@ -67,7 +67,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   @Override
   public final byte readByte() throws IOException {
     try {
-      return curBuf.get();
+      return guard.getByte(curBuf);
     } catch (BufferUnderflowException e) {
       do {
         curBufIndex++;
@@ -77,7 +77,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
         curBuf = buffers[curBufIndex];
         curBuf.position(0);
       } while (!curBuf.hasRemaining());
-      return curBuf.get();
+      return guard.getByte(curBuf);
     } catch (NullPointerException npe) {
       throw new AlreadyClosedException("Already closed: " + this);
     }
@@ -86,11 +86,11 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   @Override
   public final void readBytes(byte[] b, int offset, int len) throws IOException {
     try {
-      guard.get(curBuf, b, offset, len);
+      guard.getBytes(curBuf, b, offset, len);
     } catch (BufferUnderflowException e) {
       int curAvail = curBuf.remaining();
       while (len > curAvail) {
-        guard.get(curBuf, b, offset, curAvail);
+        guard.getBytes(curBuf, b, offset, curAvail);
         len -= curAvail;
         offset += curAvail;
         curBufIndex++;
@@ -101,7 +101,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
         curBuf.position(0);
         curAvail = curBuf.remaining();
       }
-      guard.get(curBuf, b, offset, len);
+      guard.getBytes(curBuf, b, offset, len);
     } catch (NullPointerException npe) {
       throw new AlreadyClosedException("Already closed: " + this);
     }
