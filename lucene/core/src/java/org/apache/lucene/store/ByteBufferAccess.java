@@ -23,30 +23,17 @@ import java.lang.invoke.SwitchPoint;
 import java.nio.ByteBuffer;
 
 final class ByteBufferAccess {
-  final SwitchPoint switchPoint;
-  final MethodHandle BYTEBUFFER_GET_BYTES_SAFE;
+  private final SwitchPoint switchPoint;
+  private final MethodHandle mhGetBytesSafe;
   
   ByteBufferAccess(String resourceDescription, boolean useUnmap) {
     if (useUnmap) {
       switchPoint = new SwitchPoint();
-      BYTEBUFFER_GET_BYTES_SAFE = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, 
-                                                            BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(new AlreadyClosedException("already closed:" + resourceDescription)));
+      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, 
+                                                            BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(resourceDescription));
     } else {
       switchPoint = null;
-      BYTEBUFFER_GET_BYTES_SAFE = BYTEBUFFER_GET_BYTES_UNSAFE;
-    }
-  }
-  
-  private static final MethodHandle BYTEBUFFER_GET_BYTES_UNSAFE;
-  private static final MethodHandle BYTEBUFFER_GET_BYTES_FALLBACK;
-  static {
-    MethodHandles.Lookup lookup = MethodHandles.publicLookup();
-    try {
-      BYTEBUFFER_GET_BYTES_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(ByteBuffer.class, byte[].class, int.class, int.class));
-      BYTEBUFFER_GET_BYTES_FALLBACK = MethodHandles.dropArguments(MethodHandles.throwException(ByteBuffer.class, AlreadyClosedException.class), 
-                                                                  1, BYTEBUFFER_GET_BYTES_UNSAFE.type().parameterArray());
-    } catch (NoSuchMethodException | IllegalAccessException e) {
-      throw new Error(e);
+      mhGetBytesSafe = BYTEBUFFER_GET_BYTES_UNSAFE;
     }
   }
   
@@ -60,7 +47,7 @@ final class ByteBufferAccess {
   
   ByteBuffer get(ByteBuffer receiver, byte[] dst, int offset, int length) {
     try {
-      return (ByteBuffer) BYTEBUFFER_GET_BYTES_SAFE.invokeExact(receiver, dst, offset, length);
+      return (ByteBuffer) mhGetBytesSafe.invokeExact(receiver, dst, offset, length);
     } catch (Throwable e) {
       rethrow(e);
       throw new AssertionError();
@@ -69,7 +56,28 @@ final class ByteBufferAccess {
   
   /** Hack to rethrow unknown Exceptions from {@link MethodHandle#invokeExact}: */
   @SuppressWarnings("unchecked")
-  static <T extends Throwable> void rethrow(Throwable t) throws T {
+  private static <T extends Throwable> void rethrow(Throwable t) throws T {
       throw (T) t;
   }
+
+  /** Fallback that throws {@link AlreadyClosedException} */
+  @SuppressWarnings("unused")
+  private static ByteBuffer throwAlreadyClosed(String resourceDescription) {
+    throw new AlreadyClosedException("already closed: " + resourceDescription);
+  }
+  
+  private static final MethodHandle BYTEBUFFER_GET_BYTES_UNSAFE;
+  private static final MethodHandle BYTEBUFFER_GET_BYTES_FALLBACK;
+  static {
+    MethodHandles.Lookup lookup = MethodHandles.lookup();
+    try {
+      final MethodHandle fallback = lookup.findStatic(lookup.lookupClass(), "throwAlreadyClosed", MethodType.methodType(ByteBuffer.class, String.class));
+      BYTEBUFFER_GET_BYTES_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(ByteBuffer.class, byte[].class, int.class, int.class));
+      BYTEBUFFER_GET_BYTES_FALLBACK = MethodHandles.dropArguments(fallback, 
+                                                                  1, BYTEBUFFER_GET_BYTES_UNSAFE.type().parameterArray());
+    } catch (NoSuchMethodException | IllegalAccessException e) {
+      throw new Error(e);
+    }
+  }
+  
 }
