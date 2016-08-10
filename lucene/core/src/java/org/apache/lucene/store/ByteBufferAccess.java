@@ -43,8 +43,7 @@ final class ByteBufferAccess {
     this.cleaner = cleaner;
     if (cleaner != null) {
       switchPoint = new SwitchPoint();
-      String alreadyClosedMsg = "Already closed: " + resourceDescription;
-      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(alreadyClosedMsg));
+      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK);
       mhGetByteSafe = BYTEBUFFER_GET_BYTE_UNSAFE; // xxx
     } else {
       switchPoint = null;
@@ -89,9 +88,8 @@ final class ByteBufferAccess {
   }
 
   private static MethodHandle createFallback(MethodHandle alreadyClosedCtor, MethodType to) {
-    MethodHandle fallback = MethodHandles.throwException(to.returnType(), AlreadyClosedException.class);
-    fallback = MethodHandles.filterArguments(fallback, 0, alreadyClosedCtor);
-    return MethodHandles.dropArguments(fallback, 1, to.parameterArray());
+    MethodHandle fallback = MethodHandles.throwException(to.returnType(), NullPointerException.class).bindTo(new NullPointerException());
+    return MethodHandles.dropArguments(fallback, 0, to.parameterArray());
   }
   
   private static final MethodHandle BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK,
