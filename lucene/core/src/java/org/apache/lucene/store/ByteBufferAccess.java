@@ -87,9 +87,9 @@ final class ByteBufferAccess {
       throw (T) t;
   }
 
-  private static MethodHandle createFallback(MethodHandle alreadyClosedCtor, MethodType to) {
-    MethodHandle fallback = MethodHandles.throwException(to.returnType(), NullPointerException.class).bindTo(new NullPointerException());
-    return MethodHandles.dropArguments(fallback, 0, to.parameterArray());
+  private static MethodHandle createFallback(MethodType type) {
+    MethodHandle fallback = MethodHandles.throwException(type.returnType(), NullPointerException.class).bindTo(new NullPointerException());
+    return MethodHandles.dropArguments(fallback, 0, type.parameterArray());
   }
   
   private static final MethodHandle BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK,
@@ -98,11 +98,10 @@ final class ByteBufferAccess {
   static {
     MethodHandles.Lookup lookup = MethodHandles.publicLookup();
     try {
-      final MethodHandle alreadyClosedCtor = lookup.findConstructor(AlreadyClosedException.class, MethodType.methodType(void.class, String.class));
       BYTEBUFFER_GET_BYTES_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(ByteBuffer.class, byte[].class, int.class, int.class));
-      BYTEBUFFER_GET_BYTES_FALLBACK = createFallback(alreadyClosedCtor, BYTEBUFFER_GET_BYTES_UNSAFE.type());
+      BYTEBUFFER_GET_BYTES_FALLBACK = createFallback(BYTEBUFFER_GET_BYTES_UNSAFE.type());
       BYTEBUFFER_GET_BYTE_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(byte.class));
-      BYTEBUFFER_GET_BYTE_FALLBACK = createFallback(alreadyClosedCtor, BYTEBUFFER_GET_BYTE_UNSAFE.type());
+      BYTEBUFFER_GET_BYTE_FALLBACK = createFallback(BYTEBUFFER_GET_BYTE_UNSAFE.type());
     } catch (NoSuchMethodException | IllegalAccessException e) {
       throw new Error(e);
     }
