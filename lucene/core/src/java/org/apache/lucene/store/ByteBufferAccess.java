@@ -29,8 +29,7 @@ final class ByteBufferAccess {
   ByteBufferAccess(String resourceDescription, boolean useUnmap) {
     if (useUnmap) {
       switchPoint = new SwitchPoint();
-      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, 
-                                                            BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(resourceDescription));
+      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(resourceDescription));
     } else {
       switchPoint = null;
       mhGetBytesSafe = BYTEBUFFER_GET_BYTES_UNSAFE;
@@ -62,8 +61,13 @@ final class ByteBufferAccess {
 
   /** Fallback that throws {@link AlreadyClosedException} */
   @SuppressWarnings("unused")
-  private static ByteBuffer throwAlreadyClosed(String resourceDescription) {
+  private static void throwAlreadyClosed(String resourceDescription) {
     throw new AlreadyClosedException("already closed: " + resourceDescription);
+  }
+  
+  private static MethodHandle adaptFallback(MethodHandle fallback, MethodType to) {
+    return MethodHandles.dropArguments(fallback.asType(fallback.type().changeReturnType(to.returnType())), 
+        1, to.parameterArray());
   }
   
   private static final MethodHandle BYTEBUFFER_GET_BYTES_UNSAFE;
@@ -71,10 +75,9 @@ final class ByteBufferAccess {
   static {
     MethodHandles.Lookup lookup = MethodHandles.lookup();
     try {
-      final MethodHandle fallback = lookup.findStatic(lookup.lookupClass(), "throwAlreadyClosed", MethodType.methodType(ByteBuffer.class, String.class));
+      final MethodHandle fallback = lookup.findStatic(lookup.lookupClass(), "throwAlreadyClosed", MethodType.methodType(void.class, String.class));
       BYTEBUFFER_GET_BYTES_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(ByteBuffer.class, byte[].class, int.class, int.class));
-      BYTEBUFFER_GET_BYTES_FALLBACK = MethodHandles.dropArguments(fallback, 
-                                                                  1, BYTEBUFFER_GET_BYTES_UNSAFE.type().parameterArray());
+      BYTEBUFFER_GET_BYTES_FALLBACK = adaptFallback(fallback, BYTEBUFFER_GET_BYTES_UNSAFE.type());
     } catch (NoSuchMethodException | IllegalAccessException e) {
       throw new Error(e);
     }
