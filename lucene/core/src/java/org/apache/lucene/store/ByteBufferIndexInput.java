@@ -34,7 +34,6 @@ import java.nio.ByteBuffer;
  * are a power-of-two (<code>chunkSizePower</code>).
  */
 abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessInput {
-  protected final BufferCleaner cleaner;  
   protected final long length;
   protected final long chunkSizeMask;
   protected final int chunkSizePower;
@@ -46,21 +45,20 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   protected boolean isClone = false;
   private final ByteBufferAccess guard;
   
-  public static ByteBufferIndexInput newInstance(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, BufferCleaner cleaner, ByteBufferAccess guard) {
+  public static ByteBufferIndexInput newInstance(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, ByteBufferAccess guard) {
     if (buffers.length == 1) {
-      return new SingleBufferImpl(resourceDescription, buffers[0], length, chunkSizePower, cleaner, guard);
+      return new SingleBufferImpl(resourceDescription, buffers[0], length, chunkSizePower, guard);
     } else {
-      return new MultiBufferImpl(resourceDescription, buffers, 0, length, chunkSizePower, cleaner, guard);
+      return new MultiBufferImpl(resourceDescription, buffers, 0, length, chunkSizePower, guard);
     }
   }
   
-  ByteBufferIndexInput(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, BufferCleaner cleaner, ByteBufferAccess guard) {
+  ByteBufferIndexInput(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, ByteBufferAccess guard) {
     super(resourceDescription);
     this.buffers = buffers;
     this.length = length;
     this.chunkSizePower = chunkSizePower;
     this.chunkSizeMask = (1L << chunkSizePower) - 1L;
-    this.cleaner = cleaner;
     this.guard = guard;
     assert chunkSizePower >= 0 && chunkSizePower <= 30;   
     assert (length >>> chunkSizePower) < Integer.MAX_VALUE;
@@ -290,9 +288,9 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   protected ByteBufferIndexInput newCloneInstance(String newResourceDescription, ByteBuffer[] newBuffers, int offset, long length) {
     if (newBuffers.length == 1) {
       newBuffers[0].position(offset);
-      return new SingleBufferImpl(newResourceDescription, newBuffers[0].slice(), length, chunkSizePower, this.cleaner, this.guard);
+      return new SingleBufferImpl(newResourceDescription, newBuffers[0].slice(), length, chunkSizePower, this.guard);
     } else {
-      return new MultiBufferImpl(newResourceDescription, newBuffers, offset, length, chunkSizePower, cleaner, guard);
+      return new MultiBufferImpl(newResourceDescription, newBuffers, offset, length, chunkSizePower, guard);
     }
   }
   
@@ -330,11 +328,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
       if (isClone) return;
       
       // for extra safety unset switchPoint
-      guard.invalidate();
-
-      for (final ByteBuffer b : bufs) {
-        freeBuffer(b);
-      }
+      guard.invalidate(bufs);
     } finally {
       unsetBuffers();
     }
@@ -348,31 +342,12 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     curBuf = null;
     curBufIndex = 0;
   }
-
-  /**
-   * Called when the contents of a buffer will be no longer needed.
-   */
-  private void freeBuffer(ByteBuffer b) throws IOException {
-    if (cleaner != null) {
-      cleaner.freeBuffer(this, b);
-    }
-  }
-  
-  /**
-   * Pass in an implementation of this interface to cleanup ByteBuffers.
-   * MMapDirectory implements this to allow unmapping of bytebuffers with private Java APIs.
-   */
-  @FunctionalInterface
-  static interface BufferCleaner {
-    void freeBuffer(ByteBufferIndexInput parent, ByteBuffer b) throws IOException;
-  }
   
   /** Optimization of ByteBufferIndexInput for when there is only one buffer */
   static final class SingleBufferImpl extends ByteBufferIndexInput {
 
-    SingleBufferImpl(String resourceDescription, ByteBuffer buffer, long length, int chunkSizePower,
-        BufferCleaner cleaner, ByteBufferAccess guard) {
-      super(resourceDescription, new ByteBuffer[] { buffer }, length, chunkSizePower, cleaner, guard);
+    SingleBufferImpl(String resourceDescription, ByteBuffer buffer, long length, int chunkSizePower, ByteBufferAccess guard) {
+      super(resourceDescription, new ByteBuffer[] { buffer }, length, chunkSizePower, guard);
       this.curBufIndex = 0;
       this.curBuf = buffer;
       buffer.position(0);
@@ -470,8 +445,8 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     private final int offset;
     
     MultiBufferImpl(String resourceDescription, ByteBuffer[] buffers, int offset, long length, int chunkSizePower,
-        BufferCleaner cleaner, ByteBufferAccess guard) {
-      super(resourceDescription, buffers, length, chunkSizePower, cleaner, guard);
+        ByteBufferAccess guard) {
+      super(resourceDescription, buffers, length, chunkSizePower, guard);
       this.offset = offset;
       try {
         seek(0L);

@@ -16,6 +16,7 @@
  */
 package org.apache.lucene.store;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -23,11 +24,24 @@ import java.lang.invoke.SwitchPoint;
 import java.nio.ByteBuffer;
 
 final class ByteBufferAccess {
+  private final String resourceDescription;
+  private final BufferCleaner cleaner;
   private final SwitchPoint switchPoint;
   private final MethodHandle mhGetBytesSafe;
   
-  ByteBufferAccess(String resourceDescription, boolean useUnmap) {
-    if (useUnmap) {
+  /**
+   * Pass in an implementation of this interface to cleanup ByteBuffers.
+   * MMapDirectory implements this to allow unmapping of bytebuffers with private Java APIs.
+   */
+  @FunctionalInterface
+  static interface BufferCleaner {
+    void freeBuffer(String resourceDescription, ByteBuffer b) throws IOException;
+  }
+  
+  ByteBufferAccess(String resourceDescription, BufferCleaner cleaner) {
+    this.resourceDescription = resourceDescription;
+    this.cleaner = cleaner;
+    if (cleaner != null) {
       switchPoint = new SwitchPoint();
       final String alreadyClosedMsg = "Already closed: " + resourceDescription;
       mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(alreadyClosedMsg));
@@ -37,11 +51,14 @@ final class ByteBufferAccess {
     }
   }
   
-  void invalidate() {
-    if (switchPoint != null) {
+  void invalidate(ByteBuffer bufs[]) throws IOException {
+    if (cleaner != null) {
       // TODO: we should really batch this via deletePendingFiles() or similar, or perhaps
       // queue up and take care asynchronously from another thread.
       SwitchPoint.invalidateAll(new SwitchPoint[] { switchPoint });
+      for (ByteBuffer b : bufs) {
+        cleaner.freeBuffer(resourceDescription, b);
+      }
     }
   }
   
