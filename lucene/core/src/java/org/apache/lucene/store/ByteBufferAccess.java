@@ -59,25 +59,20 @@ final class ByteBufferAccess {
       throw (T) t;
   }
 
-  /** Fallback that throws {@link AlreadyClosedException} */
-  @SuppressWarnings("unused")
-  private static void throwAlreadyClosed(String resourceDescription) {
-    throw new AlreadyClosedException("already closed: " + resourceDescription);
-  }
-  
-  private static MethodHandle adaptFallback(MethodHandle fallback, MethodType to) {
-    return MethodHandles.dropArguments(fallback.asType(fallback.type().changeReturnType(to.returnType())), 
-        1, to.parameterArray());
+  private static MethodHandle createFallback(MethodHandle alreadyClosedCtor, MethodType to) {
+    MethodHandle fallback = MethodHandles.throwException(to.returnType(), AlreadyClosedException.class);
+    fallback = MethodHandles.filterArguments(fallback, 0, alreadyClosedCtor);
+    return MethodHandles.dropArguments(fallback, 1, to.parameterArray());
   }
   
   private static final MethodHandle BYTEBUFFER_GET_BYTES_UNSAFE;
   private static final MethodHandle BYTEBUFFER_GET_BYTES_FALLBACK;
   static {
-    MethodHandles.Lookup lookup = MethodHandles.lookup();
+    MethodHandles.Lookup lookup = MethodHandles.publicLookup();
     try {
-      final MethodHandle fallback = lookup.findStatic(lookup.lookupClass(), "throwAlreadyClosed", MethodType.methodType(void.class, String.class));
+      final MethodHandle alreadyClosedCtor = lookup.findConstructor(AlreadyClosedException.class, MethodType.methodType(void.class, String.class));
       BYTEBUFFER_GET_BYTES_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(ByteBuffer.class, byte[].class, int.class, int.class));
-      BYTEBUFFER_GET_BYTES_FALLBACK = adaptFallback(fallback, BYTEBUFFER_GET_BYTES_UNSAFE.type());
+      BYTEBUFFER_GET_BYTES_FALLBACK = createFallback(alreadyClosedCtor, BYTEBUFFER_GET_BYTES_UNSAFE.type());
     } catch (NoSuchMethodException | IllegalAccessException e) {
       throw new Error(e);
     }
