@@ -29,7 +29,8 @@ final class ByteBufferAccess {
   ByteBufferAccess(String resourceDescription, boolean useUnmap) {
     if (useUnmap) {
       switchPoint = new SwitchPoint();
-      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(resourceDescription));
+      final String alreadyClosedMsg = "Already closed: " + resourceDescription;
+      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(alreadyClosedMsg));
     } else {
       switchPoint = null;
       mhGetBytesSafe = BYTEBUFFER_GET_BYTES_UNSAFE;
