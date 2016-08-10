@@ -27,7 +27,6 @@ final class ByteBufferAccess {
   private final String resourceDescription;
   private final BufferCleaner cleaner;
   private final SwitchPoint switchPoint;
-  private final String alreadyClosedMsg;
   private final MethodHandle mhGetBytesSafe, mhGetByteSafe;
   
   /**
@@ -44,17 +43,14 @@ final class ByteBufferAccess {
     this.cleaner = cleaner;
     if (cleaner != null) {
       switchPoint = new SwitchPoint();
-      alreadyClosedMsg = "Already closed: " + resourceDescription;
+      String alreadyClosedMsg = "Already closed: " + resourceDescription;
+      mhGetBytesSafe = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(alreadyClosedMsg));
+      mhGetByteSafe = BYTEBUFFER_GET_BYTE_UNSAFE; // xxx
     } else {
       switchPoint = null;
-      alreadyClosedMsg = null;
+      mhGetBytesSafe = BYTEBUFFER_GET_BYTES_UNSAFE;
+      mhGetByteSafe = BYTEBUFFER_GET_BYTE_UNSAFE;
     }
-    mhGetBytesSafe = getGuardedAccessor(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK);
-    mhGetByteSafe = getGuardedAccessor(BYTEBUFFER_GET_BYTE_UNSAFE, BYTEBUFFER_GET_BYTE_FALLBACK);
-  }
-  
-  private MethodHandle getGuardedAccessor(MethodHandle receiver, MethodHandle fallback) {
-    return (switchPoint == null) ? receiver : switchPoint.guardWithTest(receiver, fallback.bindTo(alreadyClosedMsg));
   }
   
   void invalidate(ByteBuffer bufs[]) throws IOException {
