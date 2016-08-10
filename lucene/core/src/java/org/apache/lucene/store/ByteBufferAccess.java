@@ -29,7 +29,8 @@ final class ByteBufferAccess {
   ByteBufferAccess(String resourceDescription, boolean useUnmap) {
     if (useUnmap) {
       switchPoint = new SwitchPoint();
-      BYTEBUFFER_GET_BYTES_SAFE = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, BYTEBUFFER_GET_BYTES_FALLBACK);
+      BYTEBUFFER_GET_BYTES_SAFE = switchPoint.guardWithTest(BYTEBUFFER_GET_BYTES_UNSAFE, 
+                                                            BYTEBUFFER_GET_BYTES_FALLBACK.bindTo(new AlreadyClosedException("already closed:" + resourceDescription)));
     } else {
       switchPoint = null;
       BYTEBUFFER_GET_BYTES_SAFE = BYTEBUFFER_GET_BYTES_UNSAFE;
@@ -43,7 +44,7 @@ final class ByteBufferAccess {
     try {
       BYTEBUFFER_GET_BYTES_UNSAFE = lookup.findVirtual(ByteBuffer.class, "get", MethodType.methodType(ByteBuffer.class, byte[].class, int.class, int.class));
       BYTEBUFFER_GET_BYTES_FALLBACK = MethodHandles.dropArguments(MethodHandles.throwException(ByteBuffer.class, AlreadyClosedException.class), 
-                                                                  1, BYTEBUFFER_GET_BYTES_UNSAFE.type().parameterArray()).bindTo(new AlreadyClosedException("already closed"));
+                                                                  1, BYTEBUFFER_GET_BYTES_UNSAFE.type().parameterArray());
     } catch (NoSuchMethodException | IllegalAccessException e) {
       throw new Error(e);
     }
