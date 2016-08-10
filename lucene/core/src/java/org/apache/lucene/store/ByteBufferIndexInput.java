@@ -37,13 +37,13 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   protected final long length;
   protected final long chunkSizeMask;
   protected final int chunkSizePower;
+  protected final ByteBufferAccess guard;
   
   protected ByteBuffer[] buffers;
   protected int curBufIndex = -1;
   protected ByteBuffer curBuf; // redundant for speed: buffers[curBufIndex]
 
   protected boolean isClone = false;
-  private final ByteBufferAccess guard;
   
   public static ByteBufferIndexInput newInstance(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, ByteBufferAccess guard) {
     if (buffers.length == 1) {
@@ -110,7 +110,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   @Override
   public final short readShort() throws IOException {
     try {
-      return curBuf.getShort();
+      return guard.getShort(curBuf);
     } catch (BufferUnderflowException e) {
       return super.readShort();
     } catch (NullPointerException npe) {
@@ -121,7 +121,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   @Override
   public final int readInt() throws IOException {
     try {
-      return curBuf.getInt();
+      return guard.getInt(curBuf);
     } catch (BufferUnderflowException e) {
       return super.readInt();
     } catch (NullPointerException npe) {
@@ -132,7 +132,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   @Override
   public final long readLong() throws IOException {
     try {
-      return curBuf.getLong();
+      return guard.getLong(curBuf);
     } catch (BufferUnderflowException e) {
       return super.readLong();
     } catch (NullPointerException npe) {
@@ -175,7 +175,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   public byte readByte(long pos) throws IOException {
     try {
       final int bi = (int) (pos >> chunkSizePower);
-      return buffers[bi].get((int) (pos & chunkSizeMask));
+      return guard.getByte(buffers[bi], (int) (pos & chunkSizeMask));
     } catch (IndexOutOfBoundsException ioobe) {
       throw new EOFException("seek past EOF: " + this);
     } catch (NullPointerException npe) {
@@ -201,7 +201,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   public short readShort(long pos) throws IOException {
     final int bi = (int) (pos >> chunkSizePower);
     try {
-      return buffers[bi].getShort((int) (pos & chunkSizeMask));
+      return guard.getShort(buffers[bi], (int) (pos & chunkSizeMask));
     } catch (IndexOutOfBoundsException ioobe) {
       // either it's a boundary, or read past EOF, fall back:
       setPos(pos, bi);
@@ -215,7 +215,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   public int readInt(long pos) throws IOException {
     final int bi = (int) (pos >> chunkSizePower);
     try {
-      return buffers[bi].getInt((int) (pos & chunkSizeMask));
+      return guard.getInt(buffers[bi], (int) (pos & chunkSizeMask));
     } catch (IndexOutOfBoundsException ioobe) {
       // either it's a boundary, or read past EOF, fall back:
       setPos(pos, bi);
@@ -229,7 +229,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   public long readLong(long pos) throws IOException {
     final int bi = (int) (pos >> chunkSizePower);
     try {
-      return buffers[bi].getLong((int) (pos & chunkSizeMask));
+      return guard.getLong(buffers[bi], (int) (pos & chunkSizeMask));
     } catch (IndexOutOfBoundsException ioobe) {
       // either it's a boundary, or read past EOF, fall back:
       setPos(pos, bi);
@@ -382,7 +382,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     @Override
     public byte readByte(long pos) throws IOException {
       try {
-        return curBuf.get((int) pos);
+        return guard.getByte(curBuf, (int) pos);
       } catch (IllegalArgumentException e) {
         if (pos < 0) {
           throw new IllegalArgumentException("Seeking to negative position: " + this, e);
@@ -397,7 +397,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     @Override
     public short readShort(long pos) throws IOException {
       try {
-        return curBuf.getShort((int) pos);
+        return guard.getShort(curBuf, (int) pos);
       } catch (IllegalArgumentException e) {
         if (pos < 0) {
           throw new IllegalArgumentException("Seeking to negative position: " + this, e);
@@ -412,7 +412,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     @Override
     public int readInt(long pos) throws IOException {
       try {
-        return curBuf.getInt((int) pos);
+        return guard.getInt(curBuf, (int) pos);
       } catch (IllegalArgumentException e) {
         if (pos < 0) {
           throw new IllegalArgumentException("Seeking to negative position: " + this, e);
@@ -427,7 +427,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     @Override
     public long readLong(long pos) throws IOException {
       try {
-        return curBuf.getLong((int) pos);
+        return guard.getLong(curBuf, (int) pos);
       } catch (IllegalArgumentException e) {
         if (pos < 0) {
           throw new IllegalArgumentException("Seeking to negative position: " + this, e);
