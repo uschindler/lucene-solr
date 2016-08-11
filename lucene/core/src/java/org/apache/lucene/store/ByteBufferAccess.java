@@ -47,6 +47,7 @@ final class ByteBufferAccess {
       invalidated = true;
       // this should trigger a happens-before - so flushes all caches
       STORE_BARRIER.lazySet(0);
+      Thread.yield();
       for (ByteBuffer b : bufs) {
         cleaner.freeBuffer(resourceDescription, b);
       }
