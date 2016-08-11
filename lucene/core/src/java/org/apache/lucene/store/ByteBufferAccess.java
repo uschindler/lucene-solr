@@ -20,14 +20,18 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * A guard that is created for every {@link ByteBufferIndexInput} that tries on best effort
+ * to reject any access to the {@link ByteBuffer} behind, once it is unmapped. A single instance
+ * of this is used for the original and all clones, so once the original is closed and unmapped
+ * all clones also throw {@link AlreadyClosedException}, triggered by a {@link NullPointerException}.
+ * <p>
+ * This code uses the trick that is also used in {@link java.lang.invoke.MutableCallSite} to
+ * invalidate switch points. It also yields the current thread to give other threads a chance
+ * to finish in-flight requests...
+ */
 final class ByteBufferAccess {
-  private static final AtomicInteger STORE_BARRIER = new AtomicInteger();
   
-  private final String resourceDescription;
-  private final BufferCleaner cleaner;
-  
-  private boolean invalidated = false;
-
   /**
    * Pass in an implementation of this interface to cleanup ByteBuffers.
    * MMapDirectory implements this to allow unmapping of bytebuffers with private Java APIs.
@@ -37,12 +41,20 @@ final class ByteBufferAccess {
     void freeBuffer(String resourceDescription, ByteBuffer b) throws IOException;
   }
   
-  ByteBufferAccess(String resourceDescription, BufferCleaner cleaner) {
+  private static final AtomicInteger STORE_BARRIER = new AtomicInteger();
+  
+  private final String resourceDescription;
+  private final BufferCleaner cleaner;
+  
+  /** not volatile, we use store-store barrier! */
+  private boolean invalidated = false;
+
+  public ByteBufferAccess(String resourceDescription, BufferCleaner cleaner) {
     this.resourceDescription = resourceDescription;
     this.cleaner = cleaner;
   }
   
-  void invalidate(ByteBuffer... bufs) throws IOException {
+  public void invalidate(ByteBuffer... bufs) throws IOException {
     if (cleaner != null) {
       invalidated = true;
       // this should trigger a happens-before - so flushes all caches
@@ -56,51 +68,52 @@ final class ByteBufferAccess {
   
   private void ensureValid() {
     if (invalidated) {
+      // this triggers an AlreadyClosedException in ByteBufferIndexInput:
       throw new NullPointerException();
     }
   }
   
-  void getBytes(ByteBuffer receiver, byte[] dst, int offset, int length) {
+  public void getBytes(ByteBuffer receiver, byte[] dst, int offset, int length) {
     ensureValid();
     receiver.get(dst, offset, length);
   }
   
-  byte getByte(ByteBuffer receiver) {
+  public byte getByte(ByteBuffer receiver) {
     ensureValid();
     return receiver.get();
   }
   
-  short getShort(ByteBuffer receiver) {
+  public short getShort(ByteBuffer receiver) {
     ensureValid();
     return receiver.getShort();
   }
   
-  int getInt(ByteBuffer receiver) {
+  public int getInt(ByteBuffer receiver) {
     ensureValid();
     return receiver.getInt();
   }
   
-  long getLong(ByteBuffer receiver) {
+  public long getLong(ByteBuffer receiver) {
     ensureValid();
     return receiver.getLong();
   }
   
-  byte getByte(ByteBuffer receiver, int pos) {
+  public byte getByte(ByteBuffer receiver, int pos) {
     ensureValid();
     return receiver.get(pos);
   }
   
-  short getShort(ByteBuffer receiver, int pos) {
+  public short getShort(ByteBuffer receiver, int pos) {
     ensureValid();
     return receiver.getShort(pos);
   }
   
-  int getInt(ByteBuffer receiver, int pos) {
+  public int getInt(ByteBuffer receiver, int pos) {
     ensureValid();
     return receiver.getInt(pos);
   }
   
-  long getLong(ByteBuffer receiver, int pos) {
+  public long getLong(ByteBuffer receiver, int pos) {
     ensureValid();
     return receiver.getLong(pos);
   }
