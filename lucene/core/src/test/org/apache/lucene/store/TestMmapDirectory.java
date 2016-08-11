@@ -19,6 +19,7 @@ package org.apache.lucene.store;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.lucene.util.Constants;
 
@@ -42,7 +43,7 @@ public class TestMmapDirectory extends BaseDirectoryTestCase {
   }
   
   public void testAceWithThreads() throws Exception {
-    assumeTrue("test only happens to work for sure on oracle jre", Constants.JAVA_VENDOR.startsWith("Oracle"));
+    assumeTrue("test only happens to work for sure on Oracle JRE", Constants.JAVA_VENDOR.startsWith("Oracle"));
     for (int iter = 0; iter < 10; iter++) {
       Directory dir = getDirectory(createTempDir("testAceWithThreads"));
       IndexOutput out = dir.createOutput("test", IOContext.DEFAULT);
@@ -53,18 +54,22 @@ public class TestMmapDirectory extends BaseDirectoryTestCase {
       IndexInput in = dir.openInput("test", IOContext.DEFAULT);
       IndexInput clone = in.clone();
       final byte accum[] = new byte[32 * 1024 * 1024];
-      Thread t1 = new Thread() {
-        @Override
-        public void run() {
-          try {
-            for (int i = 0; i < 10; i++) {
-              clone.seek(0);
-              clone.readBytes(accum, 0, accum.length);
-            }
-          } catch (IOException | AlreadyClosedException ok) {}
+      final CountDownLatch shotgun = new CountDownLatch(1);
+      Thread t1 = new Thread(() -> {
+        try {
+          shotgun.await();
+          for (int i = 0; i < 10; i++) {
+            clone.seek(0);
+            clone.readBytes(accum, 0, accum.length);
+          }
+        } catch (IOException | AlreadyClosedException ok) {
+          // OK
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
         }
-      };
+      });
       t1.start();
+      shotgun.countDown();
       in.close();
       t1.join();
       dir.close();
