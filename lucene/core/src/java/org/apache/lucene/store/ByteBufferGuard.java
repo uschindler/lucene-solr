@@ -17,8 +17,10 @@
 package org.apache.lucene.store;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MutableCallSite;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A guard that is created for every {@link ByteBufferIndexInput} that tries on best effort
@@ -26,9 +28,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * of this is used for the original and all clones, so once the original is closed and unmapped
  * all clones also throw {@link AlreadyClosedException}, triggered by a {@link NullPointerException}.
  * <p>
- * This code uses the trick that is also used in
- * {@link java.lang.invoke.MutableCallSite#syncAll(java.lang.invoke.MutableCallSite[])} to
- * invalidate switch points. It also yields the current thread to give other threads a chance
+ * This code uses the trick uses {@link MutableCallSite#syncAll(java.lang.invoke.MutableCallSite[])}
+ * to invalidate switch points. It also yields the current thread to give other threads a chance
  * to finish in-flight requests...
  */
 final class ByteBufferGuard {
@@ -42,14 +43,14 @@ final class ByteBufferGuard {
     void freeBuffer(String resourceDescription, ByteBuffer b) throws IOException;
   }
   
+  private static final MethodHandle MH_TRUE = MethodHandles.constant(boolean.class, true);
+  private static final MethodHandle MH_FALSE = MethodHandles.constant(boolean.class, false);
+  
+  private final MutableCallSite callSite = new MutableCallSite(MH_FALSE);
+  private final MethodHandle callSiteInvoker = callSite.dynamicInvoker();
+  
   private final String resourceDescription;
   private final BufferCleaner cleaner;
-  
-  /** not volatile, we use store-store barrier! */
-  private boolean invalidated = false;
-  
-  /** the actual store-store barrier. */
-  private final AtomicInteger barrier = new AtomicInteger();
   
   /**
    * Creates an instance to be used for a single {@link ByteBufferIndexInput} which
@@ -65,9 +66,8 @@ final class ByteBufferGuard {
    */
   public void invalidateAndUnmap(ByteBuffer... bufs) throws IOException {
     if (cleaner != null) {
-      invalidated = true;
-      // this should trigger a happens-before - so flushes all caches
-      barrier.lazySet(0);
+      callSite.setTarget(MH_TRUE);
+      MutableCallSite.syncAll(new MutableCallSite[] { callSite });
       Thread.yield();
       for (ByteBuffer b : bufs) {
         cleaner.freeBuffer(resourceDescription, b);
@@ -76,9 +76,15 @@ final class ByteBufferGuard {
   }
   
   private void ensureValid() {
-    if (invalidated) {
-      // this triggers an AlreadyClosedException in ByteBufferIndexInput:
-      throw new NullPointerException();
+    try {
+      if (true == (boolean) callSiteInvoker.invokeExact()) {
+        // this triggers an AlreadyClosedException in ByteBufferIndexInput:
+        throw new NullPointerException();
+      }
+    } catch (NullPointerException npe) {
+      throw npe;
+    } catch (Throwable e) {
+      throw new AssertionError(e);
     }
   }
   
