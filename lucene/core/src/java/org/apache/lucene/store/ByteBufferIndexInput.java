@@ -37,7 +37,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   protected final long length;
   protected final long chunkSizeMask;
   protected final int chunkSizePower;
-  protected final ByteBufferAccess guard;
+  protected final ByteBufferGuard guard;
   
   protected ByteBuffer[] buffers;
   protected int curBufIndex = -1;
@@ -45,7 +45,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
 
   protected boolean isClone = false;
   
-  public static ByteBufferIndexInput newInstance(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, ByteBufferAccess guard) {
+  public static ByteBufferIndexInput newInstance(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, ByteBufferGuard guard) {
     if (buffers.length == 1) {
       return new SingleBufferImpl(resourceDescription, buffers[0], length, chunkSizePower, guard);
     } else {
@@ -53,7 +53,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     }
   }
   
-  ByteBufferIndexInput(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, ByteBufferAccess guard) {
+  ByteBufferIndexInput(String resourceDescription, ByteBuffer[] buffers, long length, int chunkSizePower, ByteBufferGuard guard) {
     super(resourceDescription);
     this.buffers = buffers;
     this.length = length;
@@ -327,8 +327,8 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
       
       if (isClone) return;
       
-      // for extra safety unset switchPoint
-      guard.invalidate(bufs);
+      // tell the guard to invalidate and later unmap the bytebuffers (if supported):
+      guard.invalidateAndUnmap(bufs);
     } finally {
       unsetBuffers();
     }
@@ -346,7 +346,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
   /** Optimization of ByteBufferIndexInput for when there is only one buffer */
   static final class SingleBufferImpl extends ByteBufferIndexInput {
 
-    SingleBufferImpl(String resourceDescription, ByteBuffer buffer, long length, int chunkSizePower, ByteBufferAccess guard) {
+    SingleBufferImpl(String resourceDescription, ByteBuffer buffer, long length, int chunkSizePower, ByteBufferGuard guard) {
       super(resourceDescription, new ByteBuffer[] { buffer }, length, chunkSizePower, guard);
       this.curBufIndex = 0;
       this.curBuf = buffer;
@@ -445,7 +445,7 @@ abstract class ByteBufferIndexInput extends IndexInput implements RandomAccessIn
     private final int offset;
     
     MultiBufferImpl(String resourceDescription, ByteBuffer[] buffers, int offset, long length, int chunkSizePower,
-        ByteBufferAccess guard) {
+        ByteBufferGuard guard) {
       super(resourceDescription, buffers, length, chunkSizePower, guard);
       this.offset = offset;
       try {

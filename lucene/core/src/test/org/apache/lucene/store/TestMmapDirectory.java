@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.lucene.util.Constants;
-
 /**
  * Tests MMapDirectory
  */
@@ -43,7 +41,6 @@ public class TestMmapDirectory extends BaseDirectoryTestCase {
   }
   
   public void testAceWithThreads() throws Exception {
-    assumeTrue("test only happens to work for sure on Oracle JRE", Constants.JAVA_VENDOR.startsWith("Oracle"));
     for (int iter = 0; iter < 10; iter++) {
       Directory dir = getDirectory(createTempDir("testAceWithThreads"));
       IndexOutput out = dir.createOutput("test", IOContext.DEFAULT);
