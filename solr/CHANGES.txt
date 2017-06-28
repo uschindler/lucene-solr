@@ -111,6 +111,11 @@ Upgrading from Solr 6.x
 * The unused 'valType' option has been removed from ExternalFileField, if you have this in your schema you
   can safely remove it. see SOLR-10929 for more details.
 
+* SOLR-10574: basic_configs and data_driven_schema_configs have now been merged into _default. It has data driven nature
+  enabled by default, and can be turned off (after creating a collection) with:
+     curl http://host:8983/solr/mycollection/config -d '{"set-user-property": {"update.autoCreateFields":"false"}}'
+  Please see SOLR-10574 for details.
+
 New Features
 ----------------------
 * SOLR-9857, SOLR-9858: Collect aggregated metrics from nodes and shard leaders in overseer. (ab)
@@ -165,6 +170,11 @@ New Features
 
 * SOLR-10406: v2 API error messages list the URL request path as /solr/____v2/... when the original path was /v2/... (Cao Manh Dat, noble)
 
+* SOLR-10574: New _default config set replacing basic_configs and data_driven_schema_configs.
+  (Ishan Chattopadhyaya, noble, shalin, hossman, David Smiley, Jan Hoydahl, Alexandre Rafalovich) 
+
+* SOLR-10272: Use _default config set if no collection.configName is specified with CREATE (Ishan Chattopadhyaya)
+
 Bug Fixes
 ----------------------
 * SOLR-9262: Connection and read timeouts are being ignored by UpdateShardHandler after SOLR-4509.
@@ -199,6 +209,11 @@ Bug Fixes
   thus disabling the global check, and replaces it with specific checks where desired via
   QueryUtils.build().  (yonik)
 
+* SOLR-10948: Fix extraction component to treat DatePointField the same as TrieDateField (hossman)
+
+* SOLR-10506: Fix memory leak (upon collection reload or ZooKeeper session expiry) in ZkIndexSchemaReader.
+  (Torsten Bøgh Köster, Christine Poerschke, Jörg Rathlev, Mike Drob)
+
 Optimizations
 ----------------------
 
@@ -218,12 +233,6 @@ Optimizations
 
 * SOLR-10727: Avoid polluting the filter cache for certain types of faceting (typically ranges) when
   the base docset is empty. (David Smiley)
-
-* SOLR-9981: Performance improvements and bug fixes for the Analytics component. Performance fix that 
-  stops the reading of ALL lucene segments over and again for each stats collector. The AtomicReaderContext 
-  that refers to the "current " segment is reused. This fix shows an improvement of about 25% in query 
-  time for a dataset of ~10M (=9.8M) records. Given the nature of the fix, the improvement should get 
-  better as the dataset increases. Fix for the NPE during comparison (Houston Putman)
 
 Other Changes
 ----------------------
@@ -328,6 +337,12 @@ Other Changes
   increase the visibility of builder elements to be protected so extending the builder, and the clients is possible.
   (Jason Gerlowski, Anshum Gupta)
 
+* SOLR-10823: Add reporting period to SolrMetricReporter base class. (Christine Poerschke)
+
+* SOLR-10807: Randomize Points based numeric field types in (more) test schemas
+  - SOLR-10946: Randomize the usage of Points based numerics in solrj test schemas (hossman)
+  - SOLR-10947: Randomize the usage of Points based numerics in contrib test schemas (hossman)
+
 ==================  6.7.0 ==================
 
 Consult the LUCENE_CHANGES.txt file for additional, low level, changes in this release.
@@ -361,7 +376,7 @@ New Features
 * SOLR-10849: MoreLikeThisComponent should expose setMaxDocFreqPct (maxDoc 
   frequency percentage). (Dawid Weiss)
 
-* SOLR-10307: Allow Passing SSL passwords through environment variables. (Mano Kovacs via Mark Miller)
+* SOLR-10307: Allow Passing SSL passwords through environment variables. (Mano Kovacs, Michael Suzuki via Mark Miller)
 
 * SOLR-10721: Provide a way to know when Core Discovery is finished and when all async cores are done loading
   (Erick Erickson)
@@ -452,6 +467,9 @@ Bug Fixes
 * SOLR-10824: fix NPE ExactSharedStatsCache, fixing maxdocs skew for terms which are absent at one of shards
 when using one of Exact*StatsCache (Mikhail Khludnev)
 
+* SOLR-10963: Fix example json in MultipleAdditiveTreesModel javadocs.
+  (Stefan Langenmaier via Christine Poerschke)
+
 Optimizations
 ----------------------
 * SOLR-10634: JSON Facet API: When a field/terms facet will retrieve all buckets (i.e. limit:-1)
@@ -508,6 +526,9 @@ Other Changes
 * SOLR-10503,SOLR-10502: Deprecate CurrencyField in favor of new CurrencyFieldType, which works
   with point fields and provides control over dynamic fields used for the raw amount and currency
   code sub-fields.  (hossman, Steve Rowe)
+
+* SOLR-10966: Add workaround for Hadoop-Common 2.7.2 incompatibility with Java 9.
+  (Uwe Schindler)
 
 ==================  6.6.1 ==================
 
