@@ -2026,6 +2026,9 @@ ${ant.project.name}.test.dependencies=${test.classpath.list}
     <attribute name="destdir"/>
     <attribute name="javac.release" default="${javac.release}"/>
     <attribute name="includeantruntime" default="${javac.includeAntRuntime}" />
+    <attribute name="fork" default="no"/>
+    <attribute name="executable" default="Executable is mandatory because fork was set"/>
+    <attribute name="profile.args" default="${javac.profile.args}"/>
 
     <element name="nested" implicit="yes" optional="yes"/>
 
@@ -2041,12 +2044,14 @@ ${ant.project.name}.test.dependencies=${test.classpath.list}
         srcdir="@{srcdir}"
         destdir="@{destdir}"
         deprecation="${javac.deprecation}"
+        fork="@{fork}"
+        executable="@{executable}"
         debug="${javac.debug}">
         <nested/>
         <!-- <compilerarg line="-Xmaxwarns 10000000"/>
         <compilerarg line="-Xmaxerrs 10000000"/> -->
         <compilerarg line="${javac.args}"/>
-        <compilerarg line="${javac.profile.args}"/>
+        <compilerarg line="@{profile.args}"/>
         <compilerarg line="${javac.release.args}"/>
         <compilerarg line="${javac.doclint.args}"/>
       </javac>

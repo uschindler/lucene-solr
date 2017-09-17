@@ -20,6 +20,7 @@ package org.apache.lucene.codecs.simpletext;
 import java.io.IOException;
 
 import org.apache.lucene.codecs.StoredFieldsReader;
+import org.apache.lucene.future.FutureArrays;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
@@ -202,8 +203,8 @@ public class SimpleTextStoredFieldsReader extends StoredFieldsReader {
   }
   
   private boolean equalsAt(BytesRef a, BytesRef b, int bOffset) {
-    return a.length == b.length - bOffset && 
-        ArrayUtil.equals(a.bytes, a.offset, b.bytes, b.offset + bOffset, b.length - bOffset);
+    return a.length == b.length - bOffset &&
+        FutureArrays.equals(a.bytes, a.offset, a.offset + a.length, b.bytes, b.offset + bOffset, b.offset + b.length);
   }
 
   @Override

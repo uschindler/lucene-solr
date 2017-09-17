@@ -44,6 +44,54 @@
     <pathelement path="${java.class.path}"/>
   </path>
 
+  <target name="compile-core" depends="common.compile-core,compile-futurejava"/>
+
+  <!--
+  TODO: should JAVA9_HOME be optional or mandatory to compile lucene?
+  we can make it optional, instead with a warning such as:
+    "better performance if you set JAVA9_HOME"
+  and add various checks in the smoketester.
+  Otherwise, we have to edit BUILD.txt with the requirements.
+  -->
+  <!--
+  TODO: smoketester should validate any class in META-INF/versions/N has a corresponding
+  file also in the main release! Maybe methods and constants, too.
+  This is the missing validation promised in JEP 238 but not implemented anywhere I can find.
+  -->
+  <!--
+  TODO: various checks in the build such as RAT are hardcoded at src/java and not hooked in.
+  -->
+
+  <property environment="env"/>
+  <fail message="You must currently also set JAVA9_HOME to build from source">
+    <condition>
+      <not><isset property="env.JAVA9_HOME"/></not>
+    </condition>
+  </fail>
+  <!-- TODO: on windows does executable need .exe suffix? -->
+  <property name="java9.javac.exe" value="${env.JAVA9_HOME}/bin/javac"/>
+
+  <!-- simple, as there are no resources or dependencies (jdk only) -->
+  <target name="compile-futurejava">
+    <compile srcdir="src/futurejava"
+             destdir="${build.dir}/futureclasses"
+             fork="true"
+             executable="${java9.javac.exe}"
+             javac.release="9"
+             profile.args=""/>
+  </target>
+
+  <target name="jar-core">
+    <jarify>
+      <filesets>
+        <zipfileset prefix="META-INF/versions/9/" dir="${build.dir}/futureclasses"/>
+      </filesets>
+      <jarify-additional-manifest-attributes>
+        <attribute name="Multi-Release" value="true"/>
+      </jarify-additional-manifest-attributes>
+    </jarify>
+  </target>
+
   <target name="test-core" depends="common.test"/>
 
   <target name="javadocs-core" depends="javadocs"/>
