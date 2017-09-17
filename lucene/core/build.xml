@@ -28,6 +28,8 @@
 
   <property name="moman.commit-hash" value="5c5c2a1e4dea" />
   <property name="moman.url" value="https://bitbucket.org/jpbarrette/moman/get/${moman.commit-hash}.zip" />
+  
+  <property name="java9stubs.dir" location="./java9stubs"/>
 
   <path id="classpath"/>
   
@@ -47,13 +49,6 @@
   <target name="compile-core" depends="common.compile-core,compile-futurejava"/>
 
   <!--
-  TODO: should JAVA9_HOME be optional or mandatory to compile lucene?
-  we can make it optional, instead with a warning such as:
-    "better performance if you set JAVA9_HOME"
-  and add various checks in the smoketester.
-  Otherwise, we have to edit BUILD.txt with the requirements.
-  -->
-  <!--
   TODO: smoketester should validate any class in META-INF/versions/N has a corresponding
   file also in the main release! Maybe methods and constants, too.
   This is the missing validation promised in JEP 238 but not implemented anywhere I can find.
@@ -62,23 +57,29 @@
   TODO: various checks in the build such as RAT are hardcoded at src/java and not hooked in.
   -->
 
-  <property environment="env"/>
-  <fail message="You must currently also set JAVA9_HOME to build from source">
-    <condition>
-      <not><isset property="env.JAVA9_HOME"/></not>
-    </condition>
-  </fail>
-  <!-- TODO: on windows does executable need .exe suffix? -->
-  <property name="java9.javac.exe" value="${env.JAVA9_HOME}/bin/javac"/>
-
   <!-- simple, as there are no resources or dependencies (jdk only) -->
   <target name="compile-futurejava">
-    <compile srcdir="src/futurejava"
-             destdir="${build.dir}/futureclasses"
-             fork="true"
-             executable="${java9.javac.exe}"
-             javac.release="9"
-             profile.args=""/>
+    <path id="java9.bootclasspath">
+      <pathelement location="${java9stubs.dir}"/>
+    </path>
+    <condition property="future.javac.arg" value="-Xbootclasspath/p:${toString:java9.bootclasspath}" else="-Adummy">
+      <equals arg1="${build.java.runtime}" arg2="1.8"/>
+    </condition>
+    <condition property="future.javac.release" value="${javac.release}" else="9">
+      <equals arg1="${build.java.runtime}" arg2="1.8"/>
+    </condition>
+    <compile srcdir="src/futurejava" destdir="${build.dir}/futureclasses" javac.release="${future.javac.release}" profile.args="">
+      <compilerarg value="${future.javac.arg}"/>
+    </compile>
+  </target>
+
+  <!-- Special target to regenerate stub classes (without method bodies) for Java 9 classes (requires Java 9) -->
+  <target xmlns:ivy="antlib:org.apache.ivy.ant" name="generate-java9-stubs" depends="ivy-availability-check,ivy-configure,resolve-groovy"
+    description="Generates Java 9 stub classes (requires Java 9)">
+    <loadproperties prefix="ivyversions" srcFile="${common.dir}/ivy-versions.properties"/>
+    <ivy:cachepath organisation="org.ow2.asm" module="asm" revision="${ivyversions./org.ow2.asm/asm}"
+      inline="true" conf="default" transitive="false" pathid="asm.classpath"/>
+    <groovy classpathref="asm.classpath" src="src/tools/groovy/generate-java9-stubs.groovy"/>
   </target>
 
   <target name="jar-core">
