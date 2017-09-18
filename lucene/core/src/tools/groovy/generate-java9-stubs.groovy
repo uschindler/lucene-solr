@@ -47,17 +47,17 @@ def getInternalName(Class clazz) {
   writer.visit(Opcodes.V1_8, clazz.modifiers, internalName,
     clazz.getGenericSignature0(), // HACK: this is a private method, Groovy does it for us :-)
     getInternalName(clazz.superclass),
-    (String[]) clazz.interfaces.collect(this.&getInternalName));
+    clazz.interfaces.collect(this.&getInternalName) as String[]);
   clazz.declaredConstructors.each { c ->
     writer.visitMethod(c.modifiers, '<init>', Type.getConstructorDescriptor(c),
       c.signature, // HACK: this is a private field, Groovy does it for us :-)
-      (String[]) c.exceptionTypes.collect(this.&getInternalName)).visitEnd();
+      c.exceptionTypes.collect(this.&getInternalName) as String[]).visitEnd();
   }
   clazz.declaredMethods.each { m ->
     if (!Modifier.isPublic(m.modifiers) && !Modifier.isProtected(m.modifiers)) return;
     writer.visitMethod(m.modifiers, m.name, Type.getMethodDescriptor(m),
       m.signature, // HACK: this is a private field, Groovy does it for us :-)
-      (String[]) m.exceptionTypes.collect(this.&getInternalName)).visitEnd();
+      m.exceptionTypes.collect(this.&getInternalName) as String[]).visitEnd();
   }
   clazz.declaredFields.each { f ->
     if (!Modifier.isPublic(f.modifiers) && !Modifier.isProtected(f.modifiers)) return;
