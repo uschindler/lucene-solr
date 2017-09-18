@@ -65,7 +65,7 @@
   <target name="jar-core" depends="compile-core,patch-mrjar-classes">
     <jarify>
       <filesets>
-        <zipfileset prefix="META-INF/versions/9/" dir="${build.dir}/classes/java9"/>
+        <zipfileset prefix="META-INF/versions/9" dir="${build.dir}/classes/java9"/>
       </filesets>
       <jarify-additional-manifest-attributes>
         <attribute name="Multi-Release" value="true"/>
