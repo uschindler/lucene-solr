@@ -64,6 +64,9 @@ Upgrade Notes
   makes it much easier for evaluators to handle differing data types (primitives, objects, arrays,
   lists, and so forth). (Dennis Gove)
 
+* SOLR-10962: in the ReplicationHandler the master.commitReserveDuration sub-element is deprecated. Instead
+  please configure a direct commitReserveDuration element for use in all modes (master, slave, cloud).
+
 New Features
 ----------------------
 
@@ -89,6 +92,12 @@ New Features
 * SOLR-11316: JSON Facet API: min/max aggregations are now supported on single-valued date fields.
   (yonik)
 
+* SOLR-10962: Make ReplicationHandler's commitReserveDuration configurable in SolrCloud mode.
+  (Ramsey Haddad, Christine Poerschke, hossman)
+
+* SOLR-11382: Lucene's Geo3D (surface of sphere & ellipsoid) is now supported on spatial RPT fields by
+  setting spatialContextFactory="Geo3D".  Furthermore, this is the first time Solr has out of the box
+  support for polygons. (David Smiley)
 
 Bug Fixes
 ----------------------
@@ -133,6 +142,18 @@ Bug Fixes
 
 * SOLR-11348: Fix the DIH database example (James Dyer)
 
+* SOLR-11363: JSON Facet API: repeated values in a numeric points field with docValues enabled
+  were double counted. (Hossman, yonik)
+
+* SOLR-11297: Message "Lock held by this virtual machine" during startup.  Solr is trying to start some cores twice.
+  (Luiz Armesto, Shawn Heisey, Erick Erickson)
+
+* SOLR-11399: The UnifiedHighlighter was ignoring the hl.fragsize parameter when hl.bs.type=SEPARATOR
+  (Marc Morissette via David Smiley)
+
+* SOLR-11224: SolrStream.close can hit an NPE (Erick Erickson)
+
+
 Optimizations
 ----------------------
 
@@ -144,6 +165,8 @@ Optimizations
 * SOLR-11242: QueryParser: re-use the LookaheadSuccess exception. (Michael Braun via David Smiley)
 
 * SOLR-11314: FastCharStream: re-use the READ_PAST_EOF exception. (Michael Braun via David Smiley)
+
+* SOLR-8344: Decide default when requested fields are both column and row stored. (Cao Manh Dat, David Smiley)
 
 Other Changes
 ----------------------
@@ -207,6 +230,8 @@ Other Changes
 
 * SOLR-11351: Make LTRScoringModel model more extensible. (Christine Poerschke)
 
+* SOLR-10451: Remove contrib/ltr/lib from lib includes in the techproducts example config (sungjunyoung via janhoy)
+   
 ==================  7.0.0 ==================
 
 Versions of Major Components

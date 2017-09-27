@@ -297,12 +297,16 @@ public class StreamHandler extends RequestHandlerBase implements SolrCoreAware, 
         .withFunctionName("sumDifference", SumDifferenceEvaluator.class)
         .withFunctionName("meanDifference", MeanDifferenceEvaluator.class)
         .withFunctionName("primes", PrimesEvaluator.class)
+        .withFunctionName("factorial", FactorialEvaluator.class)
+        .withFunctionName("movingMedian", MovingMedianEvaluator.class)
+        .withFunctionName("monteCarlo", MonteCarloEvaluator.class)
+        .withFunctionName("constantDistribution", ConstantDistributionEvaluator.class)
+        .withFunctionName("weibullDistribution", WeibullDistributionEvaluator.class)
+        .withFunctionName("mean", MeanEvaluator.class)
 
         // Boolean Stream Evaluators
 
-
-
-                .withFunctionName("and", AndEvaluator.class)
+        .withFunctionName("and", AndEvaluator.class)
         .withFunctionName("eor", ExclusiveOrEvaluator.class)
         .withFunctionName("eq", EqualToEvaluator.class)
         .withFunctionName("gt", GreaterThanEvaluator.class)
