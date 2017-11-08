@@ -88,7 +88,7 @@ public final class DoubleRange extends Range {
 
   @Override
   public String toString() {
-    return "DoubleRange(" + min + " to " + max + ")";
+    return "DoubleRange(" + label + ": " + min + " to " + max + ")";
   }
 
   private static class ValueSourceQuery extends Query {
@@ -170,6 +170,11 @@ public final class DoubleRange extends Range {
             }
           };
           return new ConstantScoreScorer(this, score(), twoPhase);
+        }
+
+        @Override
+        public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
+          return null; // TODO delegate to LongValuesSource?
         }
       };
     }

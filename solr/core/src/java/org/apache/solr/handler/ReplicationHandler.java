@@ -220,7 +220,7 @@ public class ReplicationHandler extends RequestHandlerBase implements SolrCoreAw
 
   private PollListener pollListener;
   public interface PollListener {
-    void onComplete(SolrCore solrCore, boolean pollSuccess) throws IOException;
+    void onComplete(SolrCore solrCore, IndexFetchResult fetchResult) throws IOException;
   }
 
   /**
@@ -690,9 +690,7 @@ public class ReplicationHandler extends RequestHandlerBase implements SolrCoreAw
     }
     rsp.add(CMD_GET_FILE_LIST, result);
 
-    // fetch list of tlog files only if cdcr is activated
-    if (solrParams.getBool(TLOG_FILES, true) && core.getUpdateHandler().getUpdateLog() != null
-        && core.getUpdateHandler().getUpdateLog() instanceof CdcrUpdateLog) {
+    if (solrParams.getBool(TLOG_FILES, false)) {
       try {
         List<Map<String, Object>> tlogfiles = getTlogFileList(commit);
         LOG.info("Adding tlog files to list: " + tlogfiles);
@@ -1182,8 +1180,8 @@ public class ReplicationHandler extends RequestHandlerBase implements SolrCoreAw
       try {
         LOG.debug("Polling for index modifications");
         markScheduledExecutionStart();
-        boolean pollSuccess = doFetch(null, false).getSuccessful();
-        if (pollListener != null) pollListener.onComplete(core, pollSuccess);
+        IndexFetchResult fetchResult = doFetch(null, false);
+        if (pollListener != null) pollListener.onComplete(core, fetchResult);
       } catch (Exception e) {
         LOG.error("Exception in fetching index", e);
       }
@@ -1753,6 +1751,10 @@ public class ReplicationHandler extends RequestHandlerBase implements SolrCoreAw
   public static final String MASTER_URL = "masterUrl";
 
   public static final String FETCH_FROM_LEADER = "fetchFromLeader";
+
+  // in case of TLOG replica, if masterVersion = zero, don't do commit
+  // otherwise updates from current tlog won't copied over properly to the new tlog, leading to data loss
+  public static final String SKIP_COMMIT_ON_MASTER_VERSION_ZERO = "skipCommitOnMasterVersionZero";
 
   public static final String STATUS = "status";
 

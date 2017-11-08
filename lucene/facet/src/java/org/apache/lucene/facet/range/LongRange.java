@@ -80,7 +80,7 @@ public final class LongRange extends Range {
 
   @Override
   public String toString() {
-    return "LongRange(" + min + " to " + max + ")";
+    return "LongRange(" + label + ": " + min + " to " + max + ")";
   }
 
   private static class ValueSourceQuery extends Query {
@@ -162,6 +162,11 @@ public final class LongRange extends Range {
             }
           };
           return new ConstantScoreScorer(this, score(), twoPhase);
+        }
+
+        @Override
+        public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
+          return null; // TODO delegate to LongValuesSource?
         }
       };
     }

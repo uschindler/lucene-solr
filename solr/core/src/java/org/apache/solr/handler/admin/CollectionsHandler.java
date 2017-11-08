@@ -115,10 +115,22 @@ import static org.apache.solr.common.cloud.DocCollection.DOC_ROUTER;
 import static org.apache.solr.common.cloud.DocCollection.RULE;
 import static org.apache.solr.common.cloud.DocCollection.SNITCH;
 import static org.apache.solr.common.cloud.DocCollection.STATE_FORMAT;
-import static org.apache.solr.common.cloud.ZkStateReader.*;
+import static org.apache.solr.common.cloud.ZkStateReader.AUTO_ADD_REPLICAS;
+import static org.apache.solr.common.cloud.ZkStateReader.COLLECTION_PROP;
+import static org.apache.solr.common.cloud.ZkStateReader.MAX_SHARDS_PER_NODE;
+import static org.apache.solr.common.cloud.ZkStateReader.NRT_REPLICAS;
+import static org.apache.solr.common.cloud.ZkStateReader.PROPERTY_PROP;
+import static org.apache.solr.common.cloud.ZkStateReader.PROPERTY_VALUE_PROP;
+import static org.apache.solr.common.cloud.ZkStateReader.PULL_REPLICAS;
+import static org.apache.solr.common.cloud.ZkStateReader.REPLICATION_FACTOR;
+import static org.apache.solr.common.cloud.ZkStateReader.REPLICA_PROP;
+import static org.apache.solr.common.cloud.ZkStateReader.REPLICA_TYPE;
+import static org.apache.solr.common.cloud.ZkStateReader.SHARD_ID_PROP;
+import static org.apache.solr.common.cloud.ZkStateReader.TLOG_REPLICAS;
 import static org.apache.solr.common.params.CollectionAdminParams.COUNT_PROP;
 import static org.apache.solr.common.params.CollectionParams.CollectionAction.*;
 import static org.apache.solr.common.params.CommonAdminParams.ASYNC;
+import static org.apache.solr.common.params.CommonAdminParams.WAIT_FOR_FINAL_STATE;
 import static org.apache.solr.common.params.CommonParams.NAME;
 import static org.apache.solr.common.params.CommonParams.VALUE_LONG;
 import static org.apache.solr.common.params.CoreAdminParams.DATA_DIR;
@@ -348,20 +360,18 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
     return Category.ADMIN;
   }
 
-  public static final String SYSTEM_COLL = ".system";
-
   private static void createSysConfigSet(CoreContainer coreContainer) throws KeeperException, InterruptedException {
     SolrZkClient zk = coreContainer.getZkController().getZkStateReader().getZkClient();
     ZkCmdExecutor cmdExecutor = new ZkCmdExecutor(zk.getZkClientTimeout());
     cmdExecutor.ensureExists(ZkStateReader.CONFIGS_ZKNODE, zk);
-    cmdExecutor.ensureExists(ZkStateReader.CONFIGS_ZKNODE + "/" + SYSTEM_COLL, zk);
+    cmdExecutor.ensureExists(ZkStateReader.CONFIGS_ZKNODE + "/" + CollectionAdminParams.SYSTEM_COLL, zk);
 
     try {
-      String path = ZkStateReader.CONFIGS_ZKNODE + "/" + SYSTEM_COLL + "/schema.xml";
+      String path = ZkStateReader.CONFIGS_ZKNODE + "/" + CollectionAdminParams.SYSTEM_COLL + "/schema.xml";
       byte[] data = IOUtils.toByteArray(CollectionsHandler.class.getResourceAsStream("/SystemCollectionSchema.xml"));
       assert data != null && data.length > 0;
       cmdExecutor.ensureExists(path, data, CreateMode.PERSISTENT, zk);
-      path = ZkStateReader.CONFIGS_ZKNODE + "/" + SYSTEM_COLL + "/solrconfig.xml";
+      path = ZkStateReader.CONFIGS_ZKNODE + "/" + CollectionAdminParams.SYSTEM_COLL + "/solrconfig.xml";
       data = IOUtils.toByteArray(CollectionsHandler.class.getResourceAsStream("/SystemCollectionSolrConfig.xml"));
       assert data != null && data.length > 0;
       cmdExecutor.ensureExists(path, data, CreateMode.PERSISTENT, zk);
@@ -405,7 +415,8 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
           PULL_REPLICAS,
           TLOG_REPLICAS,
           NRT_REPLICAS,
-          POLICY);
+          POLICY,
+          WAIT_FOR_FINAL_STATE);
 
       if (props.get(STATE_FORMAT) == null) {
         props.put(STATE_FORMAT, "2");
@@ -418,7 +429,7 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
       if (StringUtils.isNotEmpty(shardsParam)) {
         verifyShardsParam(shardsParam);
       }
-      if (SYSTEM_COLL.equals(collectionName)) {
+      if (CollectionAdminParams.SYSTEM_COLL.equals(collectionName)) {
         //We must always create a .system collection with only a single shard
         props.put(NUM_SLICES, 1);
         props.remove(SHARDS_PROP);
@@ -496,7 +507,8 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
           COLLECTION_PROP,
           SHARD_ID_PROP,
           "split.key",
-          CoreAdminParams.RANGES);
+          CoreAdminParams.RANGES,
+          WAIT_FOR_FINAL_STATE);
       return copyPropertiesWithPrefix(req.getParams(), map, COLL_PROP_PREFIX);
     }),
     DELETESHARD_OP(DELETESHARD, (req, rsp, h) -> {
@@ -523,7 +535,8 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
         throw new SolrException(ErrorCode.BAD_REQUEST, "shards can be added only to 'implicit' collections");
       req.getParams().getAll(map,
           REPLICATION_FACTOR,
-          CREATE_NODE_SET);
+          CREATE_NODE_SET,
+          WAIT_FOR_FINAL_STATE);
       return copyPropertiesWithPrefix(req.getParams(), map, COLL_PROP_PREFIX);
     }),
     DELETEREPLICA_OP(DELETEREPLICA, (req, rsp, h) -> {
@@ -635,7 +648,8 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
           INSTANCE_DIR,
           DATA_DIR,
           ULOG_DIR,
-          REPLICA_TYPE);
+          REPLICA_TYPE,
+          WAIT_FOR_FINAL_STATE);
       return copyPropertiesWithPrefix(req.getParams(), props, COLL_PROP_PREFIX);
     }),
     OVERSEERSTATUS_OP(OVERSEERSTATUS, (req, rsp, h) -> (Map) new LinkedHashMap<>()),
@@ -892,7 +906,7 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
       if (targetNode == null) {
         throw new SolrException(ErrorCode.BAD_REQUEST, CollectionParams.TARGET_NODE + " is a require parameter");
       }
-      return params.getAll(null, "source", "target", CollectionParams.SOURCE_NODE, CollectionParams.TARGET_NODE);
+      return params.getAll(null, "source", "target", WAIT_FOR_FINAL_STATE, CollectionParams.SOURCE_NODE, CollectionParams.TARGET_NODE);
     }),
     MOVEREPLICA_OP(MOVEREPLICA, (req, rsp, h) -> {
       Map<String, Object> map = req.getParams().required().getAll(null,
@@ -902,6 +916,7 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
           CollectionParams.FROM_NODE,
           CollectionParams.SOURCE_NODE,
           CollectionParams.TARGET_NODE,
+          WAIT_FOR_FINAL_STATE,
           "replica",
           "shard");
     }),
@@ -1128,6 +1143,7 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
       REPLICATION_FACTOR,
       MAX_SHARDS_PER_NODE,
       AUTO_ADD_REPLICAS,
+      POLICY,
       COLL_CONF);
 
   @Override

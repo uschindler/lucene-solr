@@ -1,6 +1,4 @@
 = Running Solr on HDFS
-:page-shortname: running-solr-on-hdfs
-:page-permalink: running-solr-on-hdfs.html
 // Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -166,7 +164,7 @@ Here is a sample `solrconfig.xml` configuration for storing Solr indexes on HDFS
 </directoryFactory>
 ----
 
-If using Kerberos, you will need to add the three Kerberos related properties to the `<directoryFactory>` element in solrconfig.xml, such as:
+If using Kerberos, you will need to add the three Kerberos related properties to the `<directoryFactory>` element in `solrconfig.xml`, such as:
 
 [source,xml]
 ----

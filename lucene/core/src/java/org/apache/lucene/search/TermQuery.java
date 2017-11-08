@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -65,13 +66,16 @@ public class TermQuery extends Query {
         collectionStats = searcher.collectionStatistics(term.field());
         termStats = searcher.termStatistics(term, termStates);
       } else {
-        // we do not need the actual stats, use fake stats with docFreq=maxDoc and ttf=-1
-        final int maxDoc = searcher.getIndexReader().maxDoc();
-        collectionStats = new CollectionStatistics(term.field(), maxDoc, -1, -1, -1);
-        termStats = new TermStatistics(term.bytes(), maxDoc, -1);
+        // we do not need the actual stats, use fake stats with docFreq=maxDoc=ttf=1
+        collectionStats = new CollectionStatistics(term.field(), 1, 1, 1, 1);
+        termStats = new TermStatistics(term.bytes(), 1, 1);
       }
      
-      this.stats = similarity.computeWeight(boost, collectionStats, termStats);
+      if (termStats == null) {
+        this.stats = null; // term doesn't exist in any segment, we won't use similarity at all
+      } else {
+        this.stats = similarity.computeWeight(boost, collectionStats, termStats);
+      }
     }
 
     @Override
@@ -94,6 +98,11 @@ public class TermQuery extends Query {
       PostingsEnum docs = termsEnum.postings(null, needsScores ? PostingsEnum.FREQS : PostingsEnum.NONE);
       assert docs != null;
       return new TermScorer(this, docs, similarity.simScorer(stats, context));
+    }
+
+    @Override
+    public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
+      return context.reader().getCoreCacheHelper();
     }
 
     /**
@@ -142,7 +151,7 @@ public class TermQuery extends Query {
         if (newDoc == doc) {
           float freq = scorer.freq();
           SimScorer docScorer = similarity.simScorer(stats, context);
-          Explanation freqExplanation = Explanation.match(freq, "termFreq=" + freq);
+          Explanation freqExplanation = Explanation.match(freq, "freq, occurrences of term within document");
           Explanation scoreExplanation = docScorer.explain(doc, freqExplanation);
           return Explanation.match(
               scoreExplanation.getValue(),
