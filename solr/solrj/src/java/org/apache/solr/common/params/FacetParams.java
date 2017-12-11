@@ -106,6 +106,9 @@ public interface FacetParams {
   
   static final String FACET_OVERREQUEST = FACET + ".overrequest";
   
+  /** Hack for time limiting Solr's Facets: time in milliseconds until a facet request is cancelled (hard with Exception). */
+  public static final String FACET_TIME_ALLOWED = FACET + ".timeAllowed";
+
   /**
    * The percentage to over-request by when performing initial distributed requests.
    * 

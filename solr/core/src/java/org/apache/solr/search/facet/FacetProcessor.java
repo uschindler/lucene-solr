@@ -30,6 +30,7 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.solr.common.SolrException;
+import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.handler.component.ResponseBuilder;
 import org.apache.solr.request.SolrQueryRequest;
@@ -71,6 +72,7 @@ public abstract class FacetProcessor<FacetRequestT extends FacetRequest>  {
     fcontext.req = req;
     fcontext.searcher = req.getSearcher();
     fcontext.qcontext = QueryContext.newContext(fcontext.searcher);
+    fcontext.initTimeAllowed(req.getParams().getLong(FacetParams.FACET_TIME_ALLOWED, -1));
 
     return facetRequest.createFacetProcessor(fcontext);
   }
@@ -85,6 +87,7 @@ public abstract class FacetProcessor<FacetRequestT extends FacetRequest>  {
   }
 
   public void process() throws IOException {
+    fcontext.checkTimeAllowed();
     handleDomainChanges();
   }
 
@@ -364,6 +367,7 @@ public abstract class FacetProcessor<FacetRequestT extends FacetRequest>  {
     for (SlotAcc acc : accs) {
       acc.setNextReader(ctx);
     }
+    fcontext.checkTimeAllowed();
   }
 
   void addStats(SimpleOrderedMap<Object> target, int slotNum) throws IOException {

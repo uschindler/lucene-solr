@@ -128,6 +128,8 @@ public class FacetModule extends SearchComponent {
     fcontext.req = rb.req;
     fcontext.searcher = rb.req.getSearcher();
     fcontext.qcontext = QueryContext.newContext(fcontext.searcher);
+    fcontext.initTimeAllowed(rb.req.getParams().getLong(FacetParams.FACET_TIME_ALLOWED, -1));
+
     if (isShard) {
       fcontext.flags |= FacetContext.IS_SHARD;
       fcontext.facetInfo = facetState.facetInfo.isEmpty() ? null : (Map<String,Object>)facetState.facetInfo.get(FACET_REFINE);

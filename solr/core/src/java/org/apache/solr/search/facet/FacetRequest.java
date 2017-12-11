@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.lucene.search.Query;
@@ -38,6 +39,7 @@ import org.apache.solr.search.QueryContext;
 import org.apache.solr.search.SolrConstantScoreQuery;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.search.SyntaxError;
+import org.apache.solr.util.RTimer;
 
 import static org.apache.solr.common.params.CommonParams.SORT;
 import static org.apache.solr.search.facet.FacetRequest.RefineMethod.NONE;
@@ -251,6 +253,23 @@ class FacetContext {
   FacetContext parent;
   int flags;
   FacetDebugInfo debugInfo;
+  RTimer timer; // used to cancel too long facet requests
+  long timeAllowed;
+  
+  public void initTimeAllowed(long timeAllowed) {
+    this.timeAllowed = timeAllowed;
+    this.timer = (timeAllowed >= 0) ? new RTimer() : null;
+  }
+  
+  public void checkTimeAllowed() {
+    if (timer != null) {
+      final double elapsed = timer.getTime();
+      if (elapsed > timeAllowed) {
+        throw new SolrException(SolrException.ErrorCode.SERVICE_UNAVAILABLE,
+            String.format(Locale.ENGLISH, "Calculating facets timed out after %fms (%dms max allowed). Request aborted.", elapsed, timeAllowed));
+      }
+    }
+  }
   
   public void setDebugInfo(FacetDebugInfo debugInfo) {
     this.debugInfo = debugInfo;
@@ -279,6 +298,8 @@ class FacetContext {
     ctx.qcontext = qcontext;
     ctx.req = req;
     ctx.searcher = searcher;
+    ctx.timeAllowed = timeAllowed;
+    ctx.timer = timer;
 
     return ctx;
   }
