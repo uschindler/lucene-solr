@@ -546,10 +546,37 @@
     <!-- convenience target to compile core -->
   </target>
 
-  <target name="jar-core" depends="compile-core">
-    <jarify/>
+  <!-- Special targets to patch all class files by replacing some method calls with new Java 9 methods.
+   TODO: Move this to global tools folder, so we can apply it on all generated JAR files!
+  -->
+  <target name="-mrjar-classes-uptodate">
+    <uptodate property="mrjar-classes-uptodate" targetfile="${build.dir}/patch-mrjar.stamp">
+      <srcfiles dir= "${build.dir}/classes/java" includes="**/*.class"/>
+    </uptodate>
+  </target>
+  
+  <target xmlns:ivy="antlib:org.apache.ivy.ant" name="patch-mrjar-classes" depends="-mrjar-classes-uptodate,ivy-availability-check,ivy-configure,resolve-groovy,compile-core"
+    unless="mrjar-classes-uptodate" description="Patches compiled class files for usage with Java 9 in MR-JAR">
+    <loadproperties prefix="ivyversions" srcFile="${common.dir}/ivy-versions.properties"/>
+    <ivy:cachepath organisation="org.ow2.asm" module="asm-commons" revision="${ivyversions./org.ow2.asm/asm-commons}"
+      inline="true" conf="default" transitive="true" log="download-only" pathid="asm.classpath"/>
+    <groovy classpathref="asm.classpath" src="${common.dir}/tools/src/groovy/patch-mrjar-classes.groovy"/>
+    <touch file="${build.dir}/patch-mrjar.stamp"/>
   </target>
 
+  <target name="jar-core" depends="compile-core,patch-mrjar-classes">
+    <jarify>
+      <filesets>
+        <zipfileset prefix="META-INF/versions/9" dir="${build.dir}/classes/java9"/>
+      </filesets>
+      <jarify-additional-manifest-attributes>
+        <attribute name="Multi-Release" value="true"/>
+      </jarify-additional-manifest-attributes>
+    </jarify>
+  </target>
+
+  <!-- Packaging targets: -->
+  
   <property name="lucene.tgz.file" location="${common.dir}/dist/lucene-${version}.tgz"/>
   <available file="${lucene.tgz.file}" property="lucene.tgz.exists"/>
   <property name="lucene.tgz.unpack.dir" location="${common.build.dir}/lucene.tgz.unpacked"/>
