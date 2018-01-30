@@ -17,19 +17,19 @@
 
 package org.apache.solr.cloud.rule;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.collect.Sets;
 import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.util.TestRuleLimitSysouts;
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.cloud.rule.ImplicitSnitch;
-import org.apache.solr.common.cloud.rule.RemoteCallback;
 import org.apache.solr.common.cloud.rule.SnitchContext;
-import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.zookeeper.KeeperException;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +39,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
+@TestRuleLimitSysouts.Limit(bytes=32000)
 public class ImplicitSnitchTest extends LuceneTestCase {
 
   private ImplicitSnitch snitch;
@@ -226,8 +227,9 @@ public class ImplicitSnitchTest extends LuceneTestCase {
     expectThrows(SolrException.class, KeeperException.ConnectionLossException.class, () -> implicitSnitch.getTags("", Collections.singleton(ImplicitSnitch.NODEROLE), keeperExceptionSnitch));
 
     ServerSnitchContext remoteExceptionSnitch = new ServerSnitchContext(null, null, new HashMap<>(), null)  {
+
       @Override
-      public void invokeRemote(String node, ModifiableSolrParams params, String klas, RemoteCallback callback) {
+      public Map<String, Object> getNodeValues(String node, Collection<String> tags) {
         throw new RuntimeException();
       }
     };

@@ -165,7 +165,7 @@ public class DocValuesTermsQuery extends Query {
   }
 
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
+  public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
     return new ConstantScoreWeight(this, boost) {
 
       @Override
@@ -205,9 +205,10 @@ public class DocValuesTermsQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-        return getDocValuesCacheHelper(field, context);
+      public boolean isCacheable(LeafReaderContext ctx) {
+        return DocValues.isCacheable(ctx, field);
       }
+
     };
   }
 

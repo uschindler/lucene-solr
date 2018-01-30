@@ -20,13 +20,12 @@ package org.apache.lucene.search;
 import java.io.IOException;
 
 import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.search.similarities.Similarity;
 
 /** Expert: A <code>Scorer</code> for documents matching a <code>Term</code>.
  */
 final class TermScorer extends Scorer {
   private final PostingsEnum postingsEnum;
-  private final Similarity.SimScorer docScorer;
+  private final LeafSimScorer docScorer;
 
   /**
    * Construct a <code>TermScorer</code>.
@@ -39,7 +38,7 @@ final class TermScorer extends Scorer {
    *          The <code>Similarity.SimScorer</code> implementation
    *          to be used for score computations.
    */
-  TermScorer(Weight weight, PostingsEnum td, Similarity.SimScorer docScorer) {
+  TermScorer(Weight weight, PostingsEnum td, LeafSimScorer docScorer) {
     super(weight);
     this.docScorer = docScorer;
     this.postingsEnum = td;
@@ -50,8 +49,7 @@ final class TermScorer extends Scorer {
     return postingsEnum.docID();
   }
 
-  @Override
-  public int freq() throws IOException {
+  final int freq() throws IOException {
     return postingsEnum.freq();
   }
 
@@ -64,6 +62,11 @@ final class TermScorer extends Scorer {
   public float score() throws IOException {
     assert docID() != DocIdSetIterator.NO_MORE_DOCS;
     return docScorer.score(postingsEnum.docID(), postingsEnum.freq());
+  }
+
+  @Override
+  public float maxScore() {
+    return docScorer.maxScore();
   }
 
   /** Returns a string representation of this <code>TermScorer</code>. */

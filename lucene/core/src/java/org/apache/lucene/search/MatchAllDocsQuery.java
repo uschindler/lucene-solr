@@ -19,7 +19,6 @@ package org.apache.lucene.search;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.Bits;
 
@@ -30,7 +29,7 @@ import org.apache.lucene.util.Bits;
 public final class MatchAllDocsQuery extends Query {
 
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) {
+  public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) {
     return new ConstantScoreWeight(this, boost) {
       @Override
       public String toString() {
@@ -42,8 +41,8 @@ public final class MatchAllDocsQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-        return context.reader().getCoreCacheHelper();
+      public boolean isCacheable(LeafReaderContext ctx) {
+        return true;
       }
 
       @Override

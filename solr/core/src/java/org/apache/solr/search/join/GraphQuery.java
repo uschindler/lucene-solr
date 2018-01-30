@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
@@ -35,6 +34,7 @@ import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.WildcardQuery;
@@ -110,7 +110,7 @@ public class GraphQuery extends Query {
   }
   
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
+  public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
     Weight graphWeight = new GraphQueryWeight((SolrIndexSearcher)searcher, boost);
     return graphWeight;
   }
@@ -278,8 +278,8 @@ public class GraphQuery extends Query {
     }
 
     @Override
-    public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-      return context.reader().getCoreCacheHelper();
+    public boolean isCacheable(LeafReaderContext ctx) {
+      return true;
     }
 
     @Override
@@ -307,6 +307,11 @@ public class GraphQuery extends Query {
     }
 
     @Override
+    public float maxScore() {
+      return score;
+    }
+
+    @Override
     public DocIdSetIterator iterator() {
       return iter;
     }
@@ -316,11 +321,7 @@ public class GraphQuery extends Query {
       // current position of the doc iterator.
       return iter.docID();
     }
-    
-    @Override
-    public int freq() throws IOException {
-      return 1;
-    }
+
   }
   
   /**

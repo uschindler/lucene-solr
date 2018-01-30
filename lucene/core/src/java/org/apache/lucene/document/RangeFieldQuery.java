@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PointValues;
@@ -35,6 +34,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.ScorerSupplier;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.util.DocIdSetBuilder;
 import org.apache.lucene.util.StringHelper;
 
@@ -262,7 +262,7 @@ abstract class RangeFieldQuery extends Query {
   }
 
   @Override
-  public final Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
+  public final Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
     return new ConstantScoreWeight(this, boost) {
 
       private IntersectVisitor getIntersectVisitor(DocIdSetBuilder result) {
@@ -359,9 +359,10 @@ abstract class RangeFieldQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-        return context.reader().getCoreCacheHelper();
+      public boolean isCacheable(LeafReaderContext ctx) {
+        return true;
       }
+
     };
   }
 

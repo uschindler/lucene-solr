@@ -21,12 +21,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Weight;
 
 /**
@@ -115,7 +115,7 @@ public class FunctionRangeQuery extends Query {
   }
 
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
+  public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
     return new FunctionRangeWeight(searcher);
   }
 
@@ -156,8 +156,8 @@ public class FunctionRangeQuery extends Query {
     }
 
     @Override
-    public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-      return null;
+    public boolean isCacheable(LeafReaderContext ctx) {
+      return false;
     }
   }
 }

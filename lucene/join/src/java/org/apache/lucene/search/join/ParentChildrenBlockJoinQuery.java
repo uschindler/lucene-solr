@@ -94,8 +94,8 @@ public class ParentChildrenBlockJoinQuery extends Query {
   }
 
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
-    final Weight childWeight = childQuery.createWeight(searcher, needsScores, boost);
+  public Weight createWeight(IndexSearcher searcher, org.apache.lucene.search.ScoreMode scoreMode, float boost) throws IOException {
+    final Weight childWeight = childQuery.createWeight(searcher, scoreMode, boost);
     final int readerIndex = ReaderUtil.subIndex(parentDocId, searcher.getIndexReader().leaves());
     return new Weight(this) {
 
@@ -184,10 +184,9 @@ public class ParentChildrenBlockJoinQuery extends Query {
           }
 
           @Override
-          public int freq() throws IOException {
-            return childrenScorer.freq();
+          public float maxScore() {
+            return Float.POSITIVE_INFINITY;
           }
-
           @Override
           public DocIdSetIterator iterator() {
             return it;
@@ -196,9 +195,10 @@ public class ParentChildrenBlockJoinQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-        return null; // TODO delegate to BitSetProducer?
+      public boolean isCacheable(LeafReaderContext ctx) {
+        return false;   // TODO delegate to BitSetProducer?
       }
+
     };
   }
 }

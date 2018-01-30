@@ -19,14 +19,13 @@ package org.apache.lucene.search.spans;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermContext;
+import org.apache.lucene.index.TermStates;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreMode;
 
 /** Keep matches that contain another SpanScorer. */
 public final class SpanContainingQuery extends SpanContainQuery {
@@ -45,16 +44,16 @@ public final class SpanContainingQuery extends SpanContainQuery {
   }
 
   @Override
-  public SpanWeight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
-    SpanWeight bigWeight = big.createWeight(searcher, false, boost);
-    SpanWeight littleWeight = little.createWeight(searcher, false, boost);
-    return new SpanContainingWeight(searcher, needsScores ? getTermContexts(bigWeight, littleWeight) : null,
+  public SpanWeight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
+    SpanWeight bigWeight = big.createWeight(searcher, scoreMode, boost);
+    SpanWeight littleWeight = little.createWeight(searcher, scoreMode, boost);
+    return new SpanContainingWeight(searcher, scoreMode.needsScores() ? getTermStates(bigWeight, littleWeight) : null,
                                       bigWeight, littleWeight, boost);
   }
 
   public class SpanContainingWeight extends SpanContainWeight {
 
-    public SpanContainingWeight(IndexSearcher searcher, Map<Term, TermContext> terms,
+    public SpanContainingWeight(IndexSearcher searcher, Map<Term, TermStates> terms,
                                 SpanWeight bigWeight, SpanWeight littleWeight, float boost) throws IOException {
       super(searcher, terms, bigWeight, littleWeight, boost);
     }
@@ -119,8 +118,9 @@ public final class SpanContainingQuery extends SpanContainQuery {
     }
 
     @Override
-    public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-      return getCacheHelper(context, Arrays.asList(bigWeight, littleWeight));
+    public boolean isCacheable(LeafReaderContext ctx) {
+      return bigWeight.isCacheable(ctx) && littleWeight.isCacheable(ctx);
     }
+
   }
 }

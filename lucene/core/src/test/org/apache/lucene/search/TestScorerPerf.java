@@ -117,8 +117,8 @@ public class TestScorerPerf extends LuceneTestCase {
     }
     
     @Override
-    public boolean needsScores() {
-      return false;
+    public ScoreMode scoreMode() {
+      return ScoreMode.COMPLETE_NO_SCORES;
     }
   }
 
@@ -149,7 +149,7 @@ public class TestScorerPerf extends LuceneTestCase {
     }
 
     @Override
-    public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
+    public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
       return new ConstantScoreWeight(this, boost) {
         @Override
         public Scorer scorer(LeafReaderContext context) throws IOException {
@@ -157,8 +157,8 @@ public class TestScorerPerf extends LuceneTestCase {
         }
 
         @Override
-        public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-          return null;
+        public boolean isCacheable(LeafReaderContext ctx) {
+          return false;
         }
       };
     }

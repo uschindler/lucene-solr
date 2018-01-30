@@ -37,7 +37,7 @@ import org.apache.lucene.index.Term;
  *   String field;
  *   long minValue, maxValue;
  *   Query pointQuery = LongPoint.newRangeQuery(field, minValue, maxValue);
- *   Query dvQuery = SortedNumericDocValuesField.newRangeQuery(field, minValue, maxValue);
+ *   Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(field, minValue, maxValue);
  *   Query query = new IndexOrDocValuesQuery(pointQuery, dvQuery);
  * </pre>
  * The above query will be efficient as it will use points in the case that they
@@ -110,9 +110,9 @@ public final class IndexOrDocValuesQuery extends Query {
   }
 
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
-    final Weight indexWeight = indexQuery.createWeight(searcher, needsScores, boost);
-    final Weight dvWeight = dvQuery.createWeight(searcher, needsScores, boost);
+  public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
+    final Weight indexWeight = indexQuery.createWeight(searcher, scoreMode, boost);
+    final Weight dvWeight = dvQuery.createWeight(searcher, scoreMode, boost);
     return new Weight(this) {
       @Override
       public void extractTerms(Set<Term> terms) {
@@ -171,11 +171,12 @@ public final class IndexOrDocValuesQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
+      public boolean isCacheable(LeafReaderContext ctx) {
         // Both index and dv query should return the same values, so we can use
         // the index query's cachehelper here
-        return indexWeight.getCacheHelper(context);
+        return indexWeight.isCacheable(ctx);
       }
+
     };
   }
 

@@ -17,10 +17,8 @@
 package org.apache.lucene.facet;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -35,6 +33,7 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 
@@ -81,11 +80,11 @@ class DrillSidewaysQuery extends Query {
   }
   
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
-    final Weight baseWeight = baseQuery.createWeight(searcher, needsScores, boost);
+  public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
+    final Weight baseWeight = baseQuery.createWeight(searcher, scoreMode, boost);
     final Weight[] drillDowns = new Weight[drillDownQueries.length];
     for(int dim=0;dim<drillDownQueries.length;dim++) {
-      drillDowns[dim] = searcher.createNormalizedWeight(drillDownQueries[dim], false);
+      drillDowns[dim] = searcher.createNormalizedWeight(drillDownQueries[dim], ScoreMode.COMPLETE_NO_SCORES);
     }
 
     return new Weight(DrillSidewaysQuery.this) {
@@ -104,11 +103,14 @@ class DrillSidewaysQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-        List<Weight> weights = new ArrayList<>();
-        weights.add(baseWeight);
-        weights.addAll(Arrays.asList(drillDowns));
-        return getCacheHelper(context, weights);
+      public boolean isCacheable(LeafReaderContext ctx) {
+        if (baseWeight.isCacheable(ctx) == false)
+          return false;
+        for (Weight w : drillDowns) {
+          if (w.isCacheable(ctx) == false)
+            return false;
+        }
+        return true;
       }
 
       @Override

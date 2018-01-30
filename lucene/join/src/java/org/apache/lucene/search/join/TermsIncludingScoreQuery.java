@@ -21,7 +21,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Term;
@@ -92,11 +91,11 @@ class TermsIncludingScoreQuery extends Query {
   }
 
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
-    if (needsScores == false) {
+  public Weight createWeight(IndexSearcher searcher, org.apache.lucene.search.ScoreMode scoreMode, float boost) throws IOException {
+    if (scoreMode.needsScores() == false) {
       // We don't need scores then quickly change the query:
       TermsQuery termsQuery = new TermsQuery(toField, terms, fromField, fromQuery, topReaderContextId);
-      return searcher.rewrite(termsQuery).createWeight(searcher, false, boost);
+      return searcher.rewrite(termsQuery).createWeight(searcher, org.apache.lucene.search.ScoreMode.COMPLETE_NO_SCORES, boost);
     }
     return new Weight(TermsIncludingScoreQuery.this) {
 
@@ -142,8 +141,8 @@ class TermsIncludingScoreQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-        return context.reader().getCoreCacheHelper();
+      public boolean isCacheable(LeafReaderContext ctx) {
+        return true;
       }
 
     };
@@ -187,8 +186,8 @@ class TermsIncludingScoreQuery extends Query {
     }
 
     @Override
-    public int freq() throws IOException {
-      return 1;
+    public float maxScore() {
+      return Float.POSITIVE_INFINITY;
     }
 
     @Override

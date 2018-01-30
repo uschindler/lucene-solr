@@ -22,7 +22,6 @@ import org.apache.lucene.geo.GeoEncodingUtils;
 import org.apache.lucene.geo.GeoUtils;
 import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PointValues;
@@ -33,6 +32,7 @@ import org.apache.lucene.search.ConstantScoreWeight;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.ScorerSupplier;
 import org.apache.lucene.search.Weight;
@@ -72,7 +72,7 @@ final class LatLonPointDistanceQuery extends Query {
   }
 
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
+  public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
     Rectangle box = Rectangle.fromPointDistance(latitude, longitude, radiusMeters);
     // create bounding box(es) for the distance range
     // these are pre-encoded with LatLonPoint's encoding
@@ -119,8 +119,8 @@ final class LatLonPointDistanceQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-        return context.reader().getCoreCacheHelper();
+      public boolean isCacheable(LeafReaderContext ctx) {
+        return true;
       }
 
       @Override

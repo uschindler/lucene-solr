@@ -38,6 +38,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.search.similarities.Similarity;
@@ -698,8 +699,8 @@ public class MemoryIndex {
         }
         
         @Override
-        public boolean needsScores() {
-          return true;
+        public ScoreMode scoreMode() {
+          return ScoreMode.COMPLETE;
         }
       });
       float score = scores[0];
@@ -929,7 +930,7 @@ public class MemoryIndex {
     }
 
     int docId() {
-      return doc > 1 ? NumericDocValues.NO_MORE_DOCS : doc;
+      return doc > 0 ? NumericDocValues.NO_MORE_DOCS : doc;
     }
 
   }

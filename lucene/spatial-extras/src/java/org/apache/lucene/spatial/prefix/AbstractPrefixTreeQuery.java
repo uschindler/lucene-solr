@@ -18,7 +18,6 @@ package org.apache.lucene.spatial.prefix;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PostingsEnum;
@@ -30,6 +29,7 @@ import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
@@ -77,7 +77,7 @@ public abstract class AbstractPrefixTreeQuery extends Query {
   }
 
   @Override
-  public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
+  public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
     return new ConstantScoreWeight(this, boost) {
       @Override
       public Scorer scorer(LeafReaderContext context) throws IOException {
@@ -93,8 +93,8 @@ public abstract class AbstractPrefixTreeQuery extends Query {
       }
 
       @Override
-      public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-        return context.reader().getCoreCacheHelper();
+      public boolean isCacheable(LeafReaderContext ctx) {
+        return true;
       }
     };
   }

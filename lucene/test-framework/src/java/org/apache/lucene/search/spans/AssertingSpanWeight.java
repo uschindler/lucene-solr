@@ -20,13 +20,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermContext;
+import org.apache.lucene.index.TermStates;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.search.LeafSimScorer;
 
 /**
  * Wraps a SpanWeight with additional asserts
@@ -46,8 +45,8 @@ public class AssertingSpanWeight extends SpanWeight {
   }
 
   @Override
-  public void extractTermContexts(Map<Term, TermContext> contexts) {
-    in.extractTermContexts(contexts);
+  public void extractTermStates(Map<Term, TermStates> contexts) {
+    in.extractTermStates(contexts);
   }
 
   @Override
@@ -59,7 +58,7 @@ public class AssertingSpanWeight extends SpanWeight {
   }
 
   @Override
-  public Similarity.SimScorer getSimScorer(LeafReaderContext context) throws IOException {
+  public LeafSimScorer getSimScorer(LeafReaderContext context) throws IOException {
     return in.getSimScorer(context);
   }
 
@@ -74,8 +73,8 @@ public class AssertingSpanWeight extends SpanWeight {
   }
 
   @Override
-  public IndexReader.CacheHelper getCacheHelper(LeafReaderContext context) {
-    return in.getCacheHelper(context);
+  public boolean isCacheable(LeafReaderContext ctx) {
+    return in.isCacheable(ctx);
   }
 
   @Override
