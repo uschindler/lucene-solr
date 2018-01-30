@@ -21,11 +21,18 @@
  * Code in this package supports the minimum java version, but has a more efficient
  * implementation on newer java versions.
  * <p>
- * Don't use any of the classes here in your own code, they will be removed when Lucene
- * migrates to newer java versions.
+ * Currently any bytecode is patched to use the Java 9 native
+ * classes through MR-JAR (Multi-Release JAR) mechanism.
+ * In Java 8 it will use our own implementation.
+ * Because of patching, inside the Java source files we
+ * refer to the Lucene implementations, the final Java 9 JAR files
+ * will use the correct class names.
  */
-@Deprecated
 package org.apache.lucene.future;
-// NOTE: please don't add complex classes here, just stick with 1-1 mapping of the newer JDK API.
+// NOTE: please don't add complex classes here, just stick with 1-1 mapping of the newer
+// JDK API (the current patching approach only works with static methods).
 // This makes testing simpler (if you want to add tests to openjdk, please do that separate): it means
 // we only need to test our fallback implementations.
+// When adding other implementations, be sure to have exact same
+// method signatures and add suitable tests! Also add the class names
+// to the patching script!

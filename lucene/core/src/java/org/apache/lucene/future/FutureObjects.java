@@ -17,11 +17,13 @@
 package org.apache.lucene.future;
 
 /**
- * Additional methods from Java 9's java.util.Objects
+ * Additional methods from Java 9's {@link java.util.Objects}.
+ * <p>
+ * This class will be removed when Java 9 is minimum requirement.
+ * Currently any bytecode is patched to use the Java 9 native
+ * class through MR-JAR (Multi-Release JAR) mechanism.
  * @lucene.internal
- * @deprecated Will be removed when Java 9 is required. Use java.util.Objects directly instead.
  */
-@Deprecated
 public final class FutureObjects {
 
   /**
