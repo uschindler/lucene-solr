@@ -546,9 +546,7 @@
     <!-- convenience target to compile core -->
   </target>
 
-  <!-- Special targets to patch all class files by replacing some method calls with new Java 9 methods.
-   TODO: Move this to global tools folder, so we can apply it on all generated JAR files!
-  -->
+  <!-- Special targets to patch all class files by replacing some method calls with new Java 9 methods: -->
   <target name="-mrjar-classes-uptodate">
     <uptodate property="mrjar-classes-uptodate" targetfile="${build.dir}/patch-mrjar.stamp">
       <srcfiles dir= "${build.dir}/classes/java" includes="**/*.class"/>
@@ -563,17 +561,30 @@
     <groovy classpathref="asm.classpath" src="${common.dir}/tools/src/groovy/patch-mrjar-classes.groovy"/>
     <touch file="${build.dir}/patch-mrjar.stamp"/>
   </target>
-
-  <target name="jar-core" depends="compile-core,patch-mrjar-classes">
+  
+  <target name="-mrjar-check" depends="compile-core,patch-mrjar-classes">
+    <zipfileset id="mrjar-patched-files" prefix="META-INF/versions/9" dir="${build.dir}/classes/java9"/>
+    <condition property="has-mrjar-patched-files">
+      <resourcecount refid="mrjar-patched-files" when="greater" count="0" />
+    </condition>
+  </target>
+  
+  <target name="-mrjar-core" depends="-mrjar-check" if="has-mrjar-patched-files">
     <jarify>
       <filesets>
-        <zipfileset prefix="META-INF/versions/9" dir="${build.dir}/classes/java9"/>
+        <zipfileset refid="mrjar-patched-files"/>
       </filesets>
       <jarify-additional-manifest-attributes>
         <attribute name="Multi-Release" value="true"/>
       </jarify-additional-manifest-attributes>
     </jarify>
   </target>
+  
+  <target name="-jar-core" depends="-mrjar-check" unless="has-mrjar-patched-files">
+    <jarify/>
+  </target>
+  
+  <target name="jar-core" depends="-mrjar-core,-jar-core"/>
 
   <!-- Packaging targets: -->
   
