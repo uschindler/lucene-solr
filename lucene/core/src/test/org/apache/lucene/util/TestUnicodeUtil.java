@@ -16,8 +16,6 @@
  */
 package org.apache.lucene.util;
 
-import org.apache.lucene.future.FutureArrays;
-
 /*
  * Some of this code came from the excellent Unicode
  * conversion examples from:

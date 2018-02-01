@@ -19,8 +19,6 @@ package org.apache.lucene.util;
 
 import java.util.Arrays;
 
-import org.apache.lucene.future.FutureArrays;
-
 /** Represents byte[], as a slice (offset + length) into an
  *  existing byte[].  The {@link #bytes} member should never be null;
  *  use {@link #EMPTY_BYTES} if necessary.

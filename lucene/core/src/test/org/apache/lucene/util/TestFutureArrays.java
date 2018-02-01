@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.lucene.future;
+package org.apache.lucene.util;
 
 import java.nio.charset.StandardCharsets;
 
-import org.apache.lucene.util.LuceneTestCase;
-
+/** Test java 8-compatible implementations of {@code java.util.Arrays} methods */
 public class TestFutureArrays extends LuceneTestCase {
   
   public void testByteMismatch() {

@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.lucene.future;
+package org.apache.lucene.util;
 
-import org.apache.lucene.util.LuceneTestCase;
-
-/** Test java 8-compatible implementations of java.util.Objects methods */
+/** Test java 8-compatible implementations of {@code java.util.Objects} methods */
 public class TestFutureObjects extends LuceneTestCase {
 
   public void testCheckIndex() {

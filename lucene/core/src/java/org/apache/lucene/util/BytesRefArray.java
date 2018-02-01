@@ -19,8 +19,6 @@ package org.apache.lucene.util;
 import java.util.Arrays;
 import java.util.Comparator;
 
-import org.apache.lucene.future.FutureObjects;
-
 /**
  * A simple append only random-access {@link BytesRef} array that stores full
  * copies of the appended bytes in a {@link ByteBlockPool}.

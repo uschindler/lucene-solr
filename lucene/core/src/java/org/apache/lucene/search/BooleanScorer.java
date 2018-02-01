@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
-import org.apache.lucene.future.FutureObjects;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.FutureObjects;
 import org.apache.lucene.util.PriorityQueue;
 
 /**

@@ -20,9 +20,9 @@ package org.apache.lucene.codecs.compressing;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.lucene.future.FutureArrays;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
+import org.apache.lucene.util.FutureArrays;
 import org.apache.lucene.util.packed.PackedInts;
 
 /**

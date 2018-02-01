@@ -25,9 +25,9 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.lucene.future.FutureObjects;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.FutureObjects;
 import org.apache.lucene.util.InPlaceMergeSorter;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.Sorter;

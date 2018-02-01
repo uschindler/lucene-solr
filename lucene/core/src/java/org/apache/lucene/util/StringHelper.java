@@ -24,8 +24,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Properties;
 
-import org.apache.lucene.future.FutureArrays;
-
 /**
  * Methods for manipulating strings.
  *

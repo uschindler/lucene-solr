@@ -16,8 +16,8 @@
  */
 package org.apache.lucene.index;
 
-import org.apache.lucene.future.FutureObjects;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.FutureObjects;
 
 
 /**

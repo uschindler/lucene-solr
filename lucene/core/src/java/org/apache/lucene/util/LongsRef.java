@@ -18,8 +18,6 @@ package org.apache.lucene.util;
 
 import java.util.Arrays;
 
-import org.apache.lucene.future.FutureArrays;
-
 
 /** Represents long[], as a slice (offset + length) into an
  *  existing long[].  The {@link #longs} member should never be null; use

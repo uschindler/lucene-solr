@@ -18,8 +18,6 @@ package org.apache.lucene.util;
 
 import java.util.Arrays;
 
-import org.apache.lucene.future.FutureArrays;
-
 
 /** Represents int[], as a slice (offset + length) into an
  *  existing int[].  The {@link #ints} member should never be null; use

@@ -23,8 +23,8 @@ import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.Remapper;
 
 def mappings = [
-  'org/apache/lucene/future/FutureObjects': 'java/util/Objects',
-  'org/apache/lucene/future/FutureArrays': 'java/util/Arrays',
+  'org/apache/lucene/util/FutureObjects': 'java/util/Objects',
+  'org/apache/lucene/util/FutureArrays': 'java/util/Arrays',
 ];
 
 File inputDir = new File(properties['build.dir'], 'classes/java');

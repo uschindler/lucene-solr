@@ -17,9 +17,9 @@
 package org.apache.lucene.document;
 
 import org.apache.lucene.document.RangeFieldQuery.QueryType;
-import org.apache.lucene.future.FutureObjects;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.FutureObjects;
 import org.apache.lucene.util.NumericUtils;
 
 /**

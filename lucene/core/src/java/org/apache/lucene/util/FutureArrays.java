@@ -14,17 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.lucene.future;
+package org.apache.lucene.util;
 
 /**
- * Additional methods from Java 9's {@link java.util.Arrays}.
+ * Additional methods from Java 9's <a href="https://docs.oracle.com/javase/9/docs/api/java/util/Arrays.html">
+ * {@code java.util.Arrays}</a>.
  * <p>
  * This class will be removed when Java 9 is minimum requirement.
  * Currently any bytecode is patched to use the Java 9 native
- * class through MR-JAR (Multi-Release JAR) mechanism.
+ * classes through MR-JAR (Multi-Release JAR) mechanism.
+ * In Java 8 it will use THIS implementation.
+ * Because of patching, inside the Java source files we always
+ * refer to the Lucene implementations, but the final Lucene
+ * JAR files will use the native Java 9 class names when executed
+ * with Java 9.
  * @lucene.internal
  */
 public final class FutureArrays {
+  
+  private FutureArrays() {} // no instance
   
   // methods in Arrays are defined stupid: they cannot use Objects.checkFromToIndex
   // they throw IAE (vs IOOBE) in the case of fromIndex > toIndex.

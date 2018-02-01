@@ -20,9 +20,6 @@ package org.apache.lucene.util;
 import java.util.Arrays;
 import java.util.Comparator;
 
-import org.apache.lucene.future.FutureArrays;
-import org.apache.lucene.future.FutureObjects;
-
 /**
  * Represents char[], as a slice (offset + length) into an existing char[].
  * The {@link #chars} member should never be null; use
