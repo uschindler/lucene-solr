@@ -255,6 +255,8 @@ public class AtomicUpdateDocumentMerger {
        true, // avoid stored fields from index
        updatedFields,
        true); // resolve the full document
+    
+    log.debug("Old document while in-place merge {}: {}", cmd, oldDocument);
                                               
     if (oldDocument == RealTimeGetComponent.DELETED || oldDocument == null) {
       // This doc was deleted recently. In-place update cannot work, hence a full atomic update should be tried.

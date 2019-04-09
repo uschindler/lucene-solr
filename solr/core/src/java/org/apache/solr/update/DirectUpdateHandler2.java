@@ -907,7 +907,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
           fieldsToUpdate.add((Field)field);
         }
       }
-      log.debug("updateDocValues({})", cmd);
+      log.debug("updateDocValues({}): lucene gets: {}", cmd, luceneDocument);
       writer.updateDocValues(updateTerm, fieldsToUpdate.toArray(new Field[fieldsToUpdate.size()]));
     } else {
       updateDocument(cmd, writer, updateTerm);
@@ -920,7 +920,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
       writer.updateDocuments(updateTerm, cmd);
     } else {
       Document luceneDocument = cmd.getLuceneDocument(false);
-      log.debug("updateDocument({})", cmd);
+      log.debug("updateDocument({}): lucene gets: {}", cmd, luceneDocument);
       writer.updateDocument(updateTerm, luceneDocument);
     }
   }

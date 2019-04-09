@@ -1346,10 +1346,13 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
   // that's why this code is here... need to retry in a loop closely around/in versionAdd
   boolean getUpdatedDocument(AddUpdateCommand cmd, long versionOnUpdate) throws IOException {
     if (!AtomicUpdateDocumentMerger.isAtomicUpdate(cmd)) return false;
+    
+    log.debug("Solr input document before executing update of {}: {}", cmd, cmd.solrDoc);
 
     Set<String> inPlaceUpdatedFields = AtomicUpdateDocumentMerger.computeInPlaceUpdatableFields(cmd);
     if (inPlaceUpdatedFields.size() > 0) { // non-empty means this is suitable for in-place updates
       if (docMerger.doInPlaceUpdateMerge(cmd, inPlaceUpdatedFields)) {
+        log.debug("We can do a in-place update for {} of following fields: {}", cmd, inPlaceUpdatedFields);
         return true;
       } else {
         // in-place update failed, so fall through and re-try the same with a full atomic update
@@ -1357,9 +1360,11 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     }
     
     // full (non-inplace) atomic update
+    log.debug("We cannot do in-place update for {}", cmd);
     SolrInputDocument sdoc = cmd.getSolrInputDocument();
     BytesRef id = cmd.getIndexedId();
     SolrInputDocument oldDoc = RealTimeGetComponent.getInputDocument(cmd.getReq().getCore(), id);
+    log.debug("Old document when executing full update of {}: {}", cmd, oldDoc);
 
     if (oldDoc == null) {
       // create a new doc by default if an old one wasn't found
@@ -1375,6 +1380,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
 
 
     cmd.solrDoc = docMerger.merge(sdoc, oldDoc);
+    log.debug("Merged document when executing full update of {}: {}", cmd, cmd.solrDoc);
     return true;
   }
 
