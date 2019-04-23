@@ -20,8 +20,6 @@
 <project name="lucene-solr" default="-projecthelp" basedir=".">
   <import file="lucene/common-build.xml"/>
 
-  <property name="jgit-version" value="5.3.0.201903130848-r"/>
-  
   <property name="tests.heap-dump-dir" location="heapdumps"/>
   
   <property name="maven-build-dir" value="maven-build"/>
@@ -485,10 +483,7 @@ File | Project Structure | Platform Settings | SDKs):
     <sequential>
       <local name="wc.unversioned.files"/>
       <local name="wc.modified.files"/>
-      <ivy:cachepath xmlns:ivy="antlib:org.apache.ivy.ant" transitive="true" resolveId="jgit" pathid="jgit.classpath">
-        <ivy:dependency org="org.eclipse.jgit" name="org.eclipse.jgit" rev="${jgit-version}" conf="default" />
-        <ivy:dependency org="org.slf4j" name="slf4j-nop" rev="1.7.2" conf="default" />
-      </ivy:cachepath>
+      <ivy:cachepath xmlns:ivy="antlib:org.apache.ivy.ant" file="${buildtools.ivy}" conf="jgit" pathid="jgit.classpath"/>
       <groovy taskname="wc-checker" classpathref="jgit.classpath" src="${common.dir}/tools/src/groovy/check-working-copy.groovy"/>
       <fail if="wc.unversioned.files"
         message="Source checkout is dirty (unversioned/missing files) after running tests!!! Offending files:${line.separator}${wc.unversioned.files}"/>
