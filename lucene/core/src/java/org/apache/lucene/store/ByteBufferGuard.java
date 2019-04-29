@@ -17,9 +17,8 @@
 package org.apache.lucene.store;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A guard that is created for every {@link ByteBufferIndexInput} that tries on best effort
@@ -47,19 +46,9 @@ final class ByteBufferGuard {
   private final String resourceDescription;
   private final BufferCleaner cleaner;
   
-  @SuppressWarnings("unused")
-  private volatile boolean invalidated = false;
-  
   /** Used to access the volatile variable with different memory semantics
    * (volatile write for barrier with memory_order_seq_cst semantics, opaque reads with memory_order_relaxed semantics): */
-  private static final VarHandle VH_INVALIDATED;
-  static {
-    try {
-      VH_INVALIDATED = MethodHandles.lookup().findVarHandle(ByteBufferGuard.class, "invalidated", boolean.class);
-    } catch (ReflectiveOperationException e) {
-      throw new ExceptionInInitializerError(e);
-    }
-  }
+  private final AtomicBoolean invalidated = new AtomicBoolean(false);
   
   /**
    * Creates an instance to be used for a single {@link ByteBufferIndexInput} which
@@ -77,7 +66,7 @@ final class ByteBufferGuard {
     if (cleaner != null) {
       // This call should flush any CPU caches and as a result make
       // the "invalidated" field update visible to other threads:
-      VH_INVALIDATED.setVolatile(this, true); 
+      invalidated.set(true);
       // we give other threads a bit of time to finish reads on their ByteBuffer...:
       Thread.yield();
       // finally unmap the ByteBuffers:
@@ -88,7 +77,7 @@ final class ByteBufferGuard {
   }
   
   private void ensureValid() {
-    if (cleaner != null && (boolean) VH_INVALIDATED.getOpaque(this)) {
+    if (cleaner != null && invalidated.getOpaque()) {
       // this triggers an AlreadyClosedException in ByteBufferIndexInput:
       throw new NullPointerException();
     }
